@@ -32,6 +32,55 @@ void registerInterestWrapper(shared_ptr<HttpServer::Response> response,
 		  <<  "Content-type: application/json\r\n\r\n" << payload;
 }
 
+/**
+ * Easy wrapper for getting a specific service.
+ * It is called to get storage service details:
+ * example: GET /foglamp/service?name=FogLAMP%20Storage
+ *
+ * Immediate utility is to get the management_port of
+ * storage service when running tests.
+ * TODO fully implemtent the getService API call
+ */
+void getServiceWrapper(shared_ptr<HttpServer::Response> response,
+		       shared_ptr<HttpServer::Request> request)
+{
+
+	// Get QUERY STRING from request
+	string queryString = request->query_string;
+
+	size_t pos = queryString.find("name=");
+	if (pos != std::string::npos)
+	{
+		string serviceName = queryString.substr(pos + strlen("name="));
+		// replace %20 with SPACE
+		serviceName = std::regex_replace(serviceName,
+						 std::regex("%20"),
+						 " ");
+		ServiceRegistry* registry = ServiceRegistry::getInstance();
+		ServiceRecord* foundService = registry->findService(serviceName);
+		string payload;
+
+		if (foundService)
+		{
+			// Set JSON string with service details
+			foundService->asJSON(payload);
+		}
+		else
+		{
+			// Return not found message
+			payload = "{ \"message\": \"error: service name not found\" }";
+		}
+
+		*response << "HTTP/1.1 200 OK\r\nContent-Length: " << payload.length() << "\r\n"
+			  <<  "Content-type: application/json\r\n\r\n" << payload;
+	}
+	else
+	{
+		string errorMsg("{ \"message\": \"error: find service by name is supported right now\" }");
+		*response << "HTTP/1.1 200 OK\r\nContent-Length: " << errorMsg.length() << "\r\n"
+			  <<  "Content-type: application/json\r\n\r\n" << errorMsg;
+	}
+}
 
 /**
  * Wrapper for service registration method
@@ -273,6 +322,8 @@ CoreManagementApi::CoreManagementApi(const string& name,
 	// Services
 	m_server->resource[REGISTER_SERVICE]["POST"] = registerMicroServiceWrapper;
 	m_server->resource[UNREGISTER_SERVICE]["DELETE"] = unRegisterMicroServiceWrapper;
+
+	m_server->resource[GET_SERVICE]["GET"] = getServiceWrapper;
 
 	// Register category interest
 	// TODO implement this, right now it's just a fake
