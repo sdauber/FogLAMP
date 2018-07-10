@@ -124,7 +124,7 @@ void getCategoryWrapper(shared_ptr<HttpServer::Response> response,
 
 /**
  * Wrapper for get category name
- * Also hanlde th special item name 'children'
+ * Also handle th special item name 'children'
  * return ing child categoriies instead of the given item
  *
  * GET /foglamp/service/category/{categoryName}/{itemName}
@@ -242,7 +242,7 @@ void CoreManagementApi::getCategoryItem(shared_ptr<HttpServer::Response> respons
 			// Fetch child categories
 			ConfigCategories childCategories = m_config->getChildCategories(categoryName);
 			// Send JSON data to client
-			respond(response, childCategories.toJSON());
+			respond(response, "{ \"categories\" : " + childCategories.toJSON() + " }");
 		}
 		else
 		{
