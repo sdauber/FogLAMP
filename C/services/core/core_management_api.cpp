@@ -63,6 +63,8 @@ void getServiceWrapper(shared_ptr<HttpServer::Response> response,
 		if (foundService)
 		{
 			// Set JSON string with service details
+			// Note: the service UUID is missing at the time being
+			// TODO add all API required fields
 			foundService->asJSON(payload);
 		}
 		else
@@ -76,6 +78,9 @@ void getServiceWrapper(shared_ptr<HttpServer::Response> response,
 	}
 	else
 	{
+		/**
+		 * TODO implement other findService methods
+		 */
 		string errorMsg("{ \"message\": \"error: find service by name is supported right now\" }");
 		*response << "HTTP/1.1 200 OK\r\nContent-Length: " << errorMsg.length() << "\r\n"
 			  <<  "Content-type: application/json\r\n\r\n" << errorMsg;
