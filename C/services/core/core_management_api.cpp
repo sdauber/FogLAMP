@@ -18,6 +18,20 @@ using namespace rapidjson;
 
 CoreManagementApi *CoreManagementApi::m_instance = 0;
 
+/**
+ * Wrapper for "fake" registrer category interest
+ *
+ * TODO implement the missing functionality
+ * This method is just a fake returning a fixed id to caller
+ */
+void registerInterestWrapper(shared_ptr<HttpServer::Response> response,
+			     shared_ptr<HttpServer::Request> request)
+{
+	string payload("{\"id\" : \"1232abcd-8889-a568-0001-aabbccdd\"}");
+	*response << "HTTP/1.1 200 OK\r\nContent-Length: " << payload.length() << "\r\n"
+		  <<  "Content-type: application/json\r\n\r\n" << payload;
+}
+
 
 /**
  * Wrapper for service registration method
@@ -259,6 +273,10 @@ CoreManagementApi::CoreManagementApi(const string& name,
 	// Services
 	m_server->resource[REGISTER_SERVICE]["POST"] = registerMicroServiceWrapper;
 	m_server->resource[UNREGISTER_SERVICE]["DELETE"] = unRegisterMicroServiceWrapper;
+
+	// Register category interest
+	// TODO implement this, right now it's just a fake
+	m_server->resource[REGISTER_CATEGORY_INTEREST]["POST"] = registerInterestWrapper;
 
 	// Default wrapper
 	m_server->default_resource["GET"] = defaultWrapper;
