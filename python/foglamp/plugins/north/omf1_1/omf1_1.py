@@ -46,12 +46,12 @@ _CONFIG_DEFAULT_OMF = {
     "URL": {
         "description": "URL of PI Connector to send data to",
         "type": "string",
-        "default": "https://pi-server:5460/ingress/messages"
+        "default": "https://192.168.1.12:5460/ingress/messages"
     },
     "producerToken": {
         "description": "Producer token for this FogLAMP stream",
         "type": "string",
-        "default": "omf_north_0001"
+        "default": "uid=5ced49c3-3a55-40e7-983f-c6cdcd5c5fd1&crt=20180620084136279&sig=GaWXZ1I4Toje3Ly9Z6/wGZ+eC6bC0Njd9bFpv3Un4QI="
     },
     "OMFMaxRetry": {
         "description": "Max number of retries for communication with the OMF PI Connector Relay",
@@ -581,7 +581,8 @@ class OmfNorthPlugin(object):
                     "containerid": item["dynamic_id"],
                 }
             }
-            data.add_values(link_1).add_values(link_2)
+            # data.add_values(link_1).add_values(link_2)
+            data.add_values(link_2)
         link_data.append(data.payload())
         if len(link_data[0]['values']) > 0:
             await self.send_to_pi("data", link_data)
