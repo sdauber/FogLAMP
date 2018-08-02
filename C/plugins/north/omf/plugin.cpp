@@ -23,6 +23,39 @@
 using namespace std;
 
 /**
+ * Plugin specific default configuration
+ */
+#define PLUGIN_DEFAULT_CONFIG "\"URL\": { " \
+				"\"description\": \"The URL of the PI Connector to send data to\", " \
+				"\"type\": \"string\", " \
+				"\"default\": \"https://pi-server:5460/ingress/messages\" }, " \
+			"\"producerToken\": { " \
+				"\"description\": \"The producer token that represents this FogLAMP stream\", " \
+				"\"type\": \"string\", \"default\": \"omf_north_0001\" }, " \
+			"\"OMFHttpTimeout\": { " \
+				"\"description\": \"Timeout in seconds for the HTTP operations with the OMF PI Connector Relay\", " \
+				"\"type\": \"integer\", \"default\": \"10\" }, " \
+			"\"OMFMaxRetry\": { " \
+				"\"description\": \"Max number of retries for the communication with the OMF PI Connector Relay\", " \
+				"\"type\": \"integer\", \"default\": \"3\" }, " \
+			"\"OMFRetrySleepTime\": { " \
+        			"\"description\": \"Seconds between each retry for the communication with the OMF PI Connector Relay, " \
+                       		"NOTE : the time is doubled at each attempt.\", \"type\": \"integer\", \"default\": \"1\" }, " \
+			"\"StaticData\": { " \
+				"\"description\": \"Static data to include in each sensor reading sent to OMF.\", " \
+				"\"type\": \"string\", \"default\": \"Location: Palo Alto, Company: Dianomic\" }, " \
+			"\"applyFilter\": { " \
+        			"\"description\": \"Whether to apply filter before processing the data\", " \
+				"\"type\": \"boolean\", \"default\": \"False\" }, " \
+			"\"filterRule\": { " \
+				"\"description\": \"JQ formatted filter to apply (applicable if applyFilter is True)\", " \
+				"\"type\": \"string\", \"default\": \".[]\" }"
+
+#define OMF_PLUGIN_DESC "\"plugin\": {\"description\": \"OMF North C Plugin\", \"type\": \"string\", \"default\": \"omf\"}"
+
+#define PLUGIN_DEFAULT_CONFIG_INFO "{" OMF_PLUGIN_DESC ", " PLUGIN_DEFAULT_CONFIG "}"
+
+/**
  * The OMF plugin interface
  */
 extern "C" {
@@ -31,42 +64,13 @@ extern "C" {
  * The C API plugin information structure
  */
 static PLUGIN_INFORMATION info = {
-	"OMF",			// Name
-	"1.0.0",		// Version
-	0,			// Flags
-	PLUGIN_TYPE_NORTH,	// Type
-	"1.0.0"			// Interface version
+	"OMF",				// Name
+	"1.0.0",			// Version
+	0,				// Flags
+	PLUGIN_TYPE_NORTH,		// Type
+	"1.0.0",			// Interface version
+	PLUGIN_DEFAULT_CONFIG_INFO   // Configuration
 };
-
-/**
- * Plugin specific default configuration
- */
-static const string plugin_default_config =
-			"\"URL\": { "
-				"\"description\": \"The URL of the PI Connector to send data to\", "
-				"\"type\": \"string\", "
-				"\"default\": \"https://pi-server:5460/ingress/messages\" }, "
-			"\"producerToken\": { "
-				"\"description\": \"The producer token that represents this FogLAMP stream\", "
-				"\"type\": \"string\", \"default\": \"omf_north_0001\" }, "
-			"\"OMFHttpTimeout\": { "
-				"\"description\": \"Timeout in seconds for the HTTP operations with the OMF PI Connector Relay\", "
-				"\"type\": \"integer\", \"default\": \"10\" }, "
-			"\"OMFMaxRetry\": { "
-				"\"description\": \"Max number of retries for the communication with the OMF PI Connector Relay\", "
-				"\"type\": \"integer\", \"default\": \"3\" }, "
-			"\"OMFRetrySleepTime\": { "
-        			"\"description\": \"Seconds between each retry for the communication with the OMF PI Connector Relay, "
-                       		"NOTE : the time is doubled at each attempt.\", \"type\": \"integer\", \"default\": \"1\" }, "
-			"\"StaticData\": { "
-				"\"description\": \"Static data to include in each sensor reading sent to OMF.\", "
-				"\"type\": \"string\", \"default\": \"Location: Palo Alto, Company: Dianomic\" }, "
-			"\"applyFilter\": { "
-        			"\"description\": \"Whether to apply filter before processing the data\", "
-				"\"type\": \"boolean\", \"default\": \"False\" }, "
-			"\"filterRule\": { "
-				"\"description\": \"JQ formatted filter to apply (applicable if applyFilter is True)\", "
-				"\"type\": \"string\", \"default\": \".[]\" }";
 
 static const string omf_types_default_config =
 			"\"type-id\": { "
@@ -80,7 +84,7 @@ static const map<const string, const string> plugin_configuration = {
 					},
 					{
 						"PLUGIN",
-						plugin_default_config
+						string(PLUGIN_DEFAULT_CONFIG)
 					},
 				 };
 

@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 
 # FOGLAMP_BEGIN
@@ -18,9 +17,11 @@ import json
 import ssl
 import pathlib
 from unittest.mock import MagicMock, patch
+import pytest
+
 import aiohttp
 from aiohttp import web
-import pytest
+
 from foglamp.services.core import routes
 from foglamp.services.core import connect
 from foglamp.services.core.api.common import _logger
@@ -50,9 +51,9 @@ async def test_ping_http_allow_ping_true(test_server, test_client, loop):
     result = {"rows": [
         {"value": 1, "key": "PURGED", "description": "blah6"},
         {"value": 2, "key": "READINGS", "description": "blah1"},
-        {"value": 3, "key": "SENT_1", "description": "blah2"},
-        {"value": 4, "key": "SENT_2", "description": "blah3"},
-        {"value": 10, "key": "SENT_4", "description": "blah5"},
+        {"value": 3, "key": "North Readings to PI", "description": "blah2"},
+        {"value": 4, "key": "North Statistics to PI", "description": "blah3"},
+        {"value": 10, "key": "North Statistics to OCS", "description": "blah5"},
     ]}
 
     @asyncio.coroutine
@@ -103,9 +104,9 @@ async def test_ping_http_allow_ping_false(test_server, test_client, loop):
         result = {"rows": [
             {"value": 1, "key": "PURGED", "description": "blah6"},
             {"value": 2, "key": "READINGS", "description": "blah1"},
-            {"value": 3, "key": "SENT_1", "description": "blah2"},
-            {"value": 4, "key": "SENT_2", "description": "blah3"},
-            {"value": 10, "key": "SENT_4", "description": "blah5"},
+            {"value": 3, "key": "North Readings to PI", "description": "blah2"},
+            {"value": 4, "key": "North Statistics to PI", "description": "blah3"},
+            {"value": 10, "key": "North Statistics to OCS", "description": "blah5"},
         ]}
         return result
 
@@ -149,14 +150,15 @@ async def test_ping_http_auth_required_allow_ping_true(test_server, test_client,
     result = {"rows": [
                 {"value": 1, "key": "PURGED", "description": "blah6"},
                 {"value": 2, "key": "READINGS", "description": "blah1"},
-                {"value": 3, "key": "SENT_1", "description": "blah2"},
-                {"value": 4, "key": "SENT_2", "description": "blah3"},
-                {"value": 10, "key": "SENT_4", "description": "blah5"},
+                {"value": 3, "key": "North Readings to PI", "description": "blah2"},
+                {"value": 4, "key": "North Statistics to PI", "description": "blah3"},
+                {"value": 10, "key": "North Statistics to OCS", "description": "blah5"},
                ]}
 
     @asyncio.coroutine
     def mock_coro(*args, **kwargs):
         return result
+
     async def mock_get_category_item():
         return {"value": "true"}
 
@@ -197,14 +199,15 @@ async def test_ping_http_auth_required_allow_ping_false(test_server, test_client
     result = {"rows": [
         {"value": 1, "key": "PURGED", "description": "blah6"},
         {"value": 2, "key": "READINGS", "description": "blah1"},
-        {"value": 3, "key": "SENT_1", "description": "blah2"},
-        {"value": 4, "key": "SENT_2", "description": "blah3"},
-        {"value": 5, "key": "SENT_4", "description": "blah5"},
+        {"value": 3, "key": "North Readings to PI", "description": "blah2"},
+        {"value": 4, "key": "North Statistics to PI", "description": "blah3"},
+        {"value": 5, "key": "North Statistics to OCS", "description": "blah5"},
     ]}
 
     @asyncio.coroutine
     def mock_coro(*args, **kwargs):
         return result
+
     async def mock_get_category_item():
         return {"value": "false"}
 
@@ -240,14 +243,15 @@ async def test_ping_https_allow_ping_true(test_server, ssl_ctx, test_client, loo
     result = {"rows": [
                 {"value": 1, "key": "PURGED", "description": "blah6"},
                 {"value": 2, "key": "READINGS", "description": "blah1"},
-                {"value": 3, "key": "SENT_1", "description": "blah2"},
-                {"value": 4, "key": "SENT_2", "description": "blah3"},
-                {"value": 10, "key": "SENT_4", "description": "blah5"},
+                {"value": 3, "key": "North Readings to PI", "description": "blah2"},
+                {"value": 4, "key": "North Statistics to PI", "description": "blah3"},
+                {"value": 10, "key": "North Statistics to OCS", "description": "blah5"},
                ]}
 
     @asyncio.coroutine
     def mock_coro(*args, **kwargs):
         return result
+
     async def mock_get_category_item():
         return {"value": "true"}
 
@@ -301,14 +305,15 @@ async def test_ping_https_allow_ping_false(test_server, ssl_ctx, test_client, lo
     result = {"rows": [
         {"value": 1, "key": "PURGED", "description": "blah6"},
         {"value": 2, "key": "READINGS", "description": "blah1"},
-        {"value": 3, "key": "SENT_1", "description": "blah2"},
-        {"value": 4, "key": "SENT_2", "description": "blah3"},
-        {"value": 6, "key": "SENT_4", "description": "blah5"},
+        {"value": 3, "key": "North Readings to PI", "description": "blah2"},
+        {"value": 4, "key": "North Statistics to PI", "description": "blah3"},
+        {"value": 6, "key": "North Statistics to OCS", "description": "blah5"},
     ]}
 
     @asyncio.coroutine
     def mock_coro(*args, **kwargs):
         return result
+
     async def mock_get_category_item():
         return {"value": "false"}
 
@@ -355,14 +360,15 @@ async def test_ping_https_auth_required_allow_ping_true(test_server, ssl_ctx, te
     result = {"rows": [
                 {"value": 1, "key": "PURGED", "description": "blah6"},
                 {"value": 2, "key": "READINGS", "description": "blah1"},
-                {"value": 3, "key": "SENT_1", "description": "blah2"},
-                {"value": 4, "key": "SENT_2", "description": "blah3"},
-                {"value": 10, "key": "SENT_4", "description": "blah5"},
+                {"value": 3, "key": "North Readings to PI", "description": "blah2"},
+                {"value": 4, "key": "North Statistics to PI", "description": "blah3"},
+                {"value": 10, "key": "North Statistics to OCS", "description": "blah5"},
                ]}
 
     @asyncio.coroutine
     def mock_coro(*args, **kwargs):
         return result
+
     async def mock_get_category_item():
         return {"value": "true"}
 
@@ -419,11 +425,12 @@ async def test_ping_https_auth_required_allow_ping_false(test_server, ssl_ctx, t
         result = {"rows": [
             {"value": 1, "key": "PURGED", "description": "blah6"},
             {"value": 2, "key": "READINGS", "description": "blah1"},
-            {"value": 3, "key": "SENT_1", "description": "blah2"},
-            {"value": 4, "key": "SENT_2", "description": "blah3"},
-            {"value": 6, "key": "SENT_4", "description": "blah5"},
+            {"value": 3, "key": "North Readings to PI", "description": "blah2"},
+            {"value": 4, "key": "North Statistics to PI", "description": "blah3"},
+            {"value": 6, "key": "North Statistics to OCS", "description": "blah5"},
         ]}
         return result
+
     async def mock_get_category_item():
         return {"value": "false"}
 
@@ -483,4 +490,23 @@ async def test_shutdown_http(test_server, test_client, loop):
     content_dict = json.loads(content)
     assert "FogLAMP shutdown has been scheduled. Wait for few seconds for process cleanup." == content_dict["message"]
 
+
+@pytest.allure.feature("unit")
+@pytest.allure.story("api", "common")
+async def test_restart_http(test_server, test_client, loop):
+    app = web.Application()
+    # fill route table
+    routes.setup(app)
+
+    server = await test_server(app)
+    server.start_server(loop=loop)
+
+    with patch.object(_logger, 'info') as logger_info:
+        client = await test_client(server)
+        resp = await client.put('/foglamp/restart', data=None)
+        assert 200 == resp.status
+        content = await resp.text()
+        content_dict = json.loads(content)
+        assert "FogLAMP restart has been scheduled." == content_dict["message"]
+    logger_info.assert_called_once_with('Executing controlled shutdown and start')
 
