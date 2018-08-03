@@ -1,1 +1,1 @@
-echo "Testing slack"
+echo "Testing notify"
