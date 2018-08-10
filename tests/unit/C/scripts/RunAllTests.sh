@@ -1,4 +1,7 @@
 #!/bin/sh
+
+set -e
+
 cd $FOGLAMP_ROOT/tests/unit/C
 if [ ! -d results ] ; then
 	mkdir results
