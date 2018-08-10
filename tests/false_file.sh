@@ -1,1 +1,1 @@
-echo "Testing notify"
+echo "Testing bal"
