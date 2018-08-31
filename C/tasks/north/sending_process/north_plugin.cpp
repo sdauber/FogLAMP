@@ -22,7 +22,7 @@ using namespace std;
 NorthPlugin::NorthPlugin(const PLUGIN_HANDLE handle) : Plugin(handle)
 {
         // Setup the function pointers to the plugin
-        pluginInit = (PLUGIN_HANDLE (*)(const map<string, string>& config))
+        pluginInit = (PLUGIN_HANDLE (*)(const ConfigCategory* config))
 					manager->resolveSymbol(handle, "plugin_init");
 
 	pluginShutdownPtr = (void (*)(const PLUGIN_HANDLE))
@@ -31,7 +31,11 @@ NorthPlugin::NorthPlugin(const PLUGIN_HANDLE handle) : Plugin(handle)
 	pluginSend = (uint32_t (*)(const PLUGIN_HANDLE, const vector<Reading* >& readings))
 				   manager->resolveSymbol(handle, "plugin_send");
 
-	pluginGetConfig = (map<const string, const string>& (*)())manager->resolveSymbol(handle, "plugin_config");
+	pluginInfo = (PLUGIN_INFORMATION* (*)())
+					      manager->resolveSymbol(handle, "plugin_info");
+
+	pluginExtraConfig = (string& (*)())
+					 manager->resolveSymbol(handle, "plugin_extra_config");
 }
 
 // Destructor
@@ -45,10 +49,10 @@ NorthPlugin::~NorthPlugin()
  * @param config    The configuration data
  * @return          The plugin handle
  */
-PLUGIN_HANDLE NorthPlugin::init(const map<string, string>& config)
+PLUGIN_HANDLE NorthPlugin::init(const ConfigCategory& config)
 {
-	m_instance = this->pluginInit(config);
-	return &m_instance;
+	m_instance = this->pluginInit(&config);
+	return m_instance ? &m_instance : NULL;
 }
 
 /**
@@ -62,12 +66,25 @@ uint32_t NorthPlugin::send(const vector<Reading* >& readings) const
 	return this->pluginSend(m_instance, readings);
 }
 
-/**
- * Return plugin specific configuration
- */
-map<const string, const string>& NorthPlugin::config() const
+PLUGIN_INFORMATION* NorthPlugin::info() const
 {
-	return this->pluginGetConfig();
+        return this->pluginInfo();
+}
+
+static string empty_extra_config;
+/**
+ * Return plugin additional configuration
+ */
+string& NorthPlugin::extra_config() const
+{
+	if (pluginExtraConfig != NULL)
+	{
+		return this->pluginExtraConfig();
+	}
+	else
+	{
+		return empty_extra_config;
+	}
 }
 
 /**

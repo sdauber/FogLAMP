@@ -53,9 +53,13 @@ class ConfigCategory {
 		ConfigCategory() {};
 		ConfigCategory(const ConfigCategory& orig);
 		~ConfigCategory();
-		void				addItem(const std::string& name, const std::string description,
-							const std::string& type, const std::string def,
+		void				addItem(const std::string& name,
+							const std::string description,
+							const std::string& type,
+							const std::string def,
 							const std::string& value);
+		void 				addItem(const std::string& name,
+							const rapidjson::Value& item);
 		void				setDescription(const std::string& description);
 		std::string                     getName() const { return m_name; };
 		std::string                     getDescription() const { return m_description; };

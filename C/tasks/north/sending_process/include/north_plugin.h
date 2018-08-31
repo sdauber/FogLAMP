@@ -13,6 +13,7 @@
 #include <plugin.h>
 #include <plugin_manager.h>
 #include <reading.h>
+#include <config_category.h>
 
 /**
  * Class that represents a north plugin.
@@ -32,17 +33,19 @@ class NorthPlugin : public Plugin {
 		~NorthPlugin();
 
 		void			shutdown();
-		std::map<const std::string, const std::string>& 	config() const;
+		PLUGIN_INFORMATION* 	info() const;
+		std::string& 		extra_config() const;
 		uint32_t		send(const std::vector<Reading* >& readings) const;
-		PLUGIN_HANDLE		init(const std::map<std::string, std::string>& config);
+		PLUGIN_HANDLE		init(const ConfigCategory& config);
 
 	private:
 		// Function pointers
 		void			(*pluginShutdownPtr)(const PLUGIN_HANDLE);
-		std::map<const std::string, const std::string>&	(*pluginGetConfig)();
+		PLUGIN_INFORMATION*	(*pluginInfo)();
+		std::string&		(*pluginExtraConfig)();
 		uint32_t		(*pluginSend)(const PLUGIN_HANDLE,
 						      const std::vector<Reading* >& readings);
-		PLUGIN_HANDLE		(*pluginInit)(const std::map<std::string, std::string>& config);
+		PLUGIN_HANDLE		(*pluginInit)(const ConfigCategory* config);
 
 	private:
 		// Attributes

@@ -5,7 +5,7 @@
  *
  * Released under the Apache 2.0 Licence
  *
- * Author: Mark Riddoch
+ * Author: Mark Riddoch, Massimiliano Pinto
  */
 #include <plugin_api.h>
 #include <stdio.h>
@@ -75,58 +75,41 @@ PLUGIN_INFORMATION *plugin_info()
 	return &info;
 }
 
-static const map<const string, const string> plugin_configuration = {
-					{
-						"PLUGIN",
-						string(PLUGIN_DEFAULT_CONFIG)
-					},
-				 };
-
-/**
- * Return default plugin configuration:
- * plugin specific and types_id
- */
-const map<const string, const string>& plugin_config()
-{
-	return plugin_configuration;
-}
-
 /**
  * Initialise the plugin with configuration.
  *
  * This funcion is called to get the plugin handle.
  */
-PLUGIN_HANDLE plugin_init(map<string, string>&& configData)
+PLUGIN_HANDLE plugin_init(const ConfigCategory* configData)
 {
-	ConfigCategory configCategory("cfg", configData["GLOBAL_CONFIGURATION"]);
-	if (! configCategory.itemExists("URL"))
+	if (!configData->itemExists("URL"))
 	{
 		Logger::getLogger()->fatal("ThingSpeak plugin must have a URL defined for the ThinkSpeak API");
 		throw exception();
 	}
-	string url = configCategory.getValue("URL");
-	if (! configCategory.itemExists("channelId"))
+	string url = configData->getValue("URL");
+	if (!configData->itemExists("channelId"))
 	{
 		Logger::getLogger()->fatal("ThingSpeak plugin must have a channel ID defined");
 		throw exception();
 	}
-	int channel = atoi(configCategory.getValue("channelId").c_str());
-	if (! configCategory.itemExists("fields"))
+	int channel = atoi(configData->getValue("channelId").c_str());
+	if (!configData->itemExists("fields"))
 	{
 		Logger::getLogger()->fatal("ThingSpeak plugin must have a field list defined");
 		throw exception();
 	}
-	string apiKey = configCategory.getValue("write_api_key");
+	string apiKey = configData->getValue("write_api_key");
 
 	ThingSpeak *thingSpeak = new ThingSpeak(url, channel, apiKey);
 	thingSpeak->connect();
 
-	if (! configCategory.itemExists("fields"))
+	if (!configData->itemExists("fields"))
 	{
 		Logger::getLogger()->fatal("ThingSpeak plugin must have a field list defined");
 		throw exception();
 	}
-	string fields = configCategory.getValue("fields");
+	string fields = configData->getValue("fields");
 	Document doc;
 	doc.Parse(fields.c_str());
 	if (!doc.HasParseError())

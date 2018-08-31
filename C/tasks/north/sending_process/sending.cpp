@@ -18,13 +18,8 @@
 // The type of the plugin managed by the Sending Process
 #define PLUGIN_TYPE "north"
 
-#define GLOBAL_CONFIG_KEY "GLOBAL_CONFIGURATION"
-#define PLUGIN_CONFIG_KEY "PLUGIN"
-#define PLUGIN_TYPES_KEY "OMF_TYPES"
-
 // Configuration retrieved from the Configuration Manager
 #define CONFIG_CATEGORY_DESCRIPTION "Configuration of the Sending Process"
-#define CATEGORY_OMF_TYPES_DESCRIPTION "Configuration of OMF types"
 
 // Default values for the creation of a new stream,
 // the description is derived from the parameter --name
@@ -39,10 +34,9 @@ std::vector<ReadingSet*>* SendingProcess::m_buffer_ptr = 0;
 // Used to identifies logs
 const string LOG_SERVICE_NAME = "SendingProcess/sending";
 
-static map<string, string> globalConfiguration = {};
-
 // Sending process default configuration
 static const string sendingDefaultConfig =
+	"{"
 	"\"enable\": {"
 		"\"description\": \"A switch that can be used to enable or disable execution of "
 		"the sending process.\", \"type\": \"boolean\", \"default\": \"True\" },"
@@ -62,8 +56,8 @@ static const string sendingDefaultConfig =
 		"readings to be sent.\", \"type\": \"integer\", \"default\": \"1\" }, "
 	"\"streamId\": {"
 		"\"description\": \"Identifies the specific stream to handle and the related information,"
-		" among them the ID of the last object streamed.\", \"type\": \"integer\", \"default\": \"0\" }";
-
+		" among them the ID of the last object streamed.\", \"type\": \"integer\", \"default\": \"0\" }"
+	"}";
 
 volatile std::sig_atomic_t signalReceived = 0;
 
@@ -126,14 +120,13 @@ SendingProcess::SendingProcess(int argc, char** argv) : FogLampProcess(argc, arg
 	 * Create or update configuration via FogLAMP API
 	 */
 
-	// Reads the sending process configuration
-	this->fetchConfiguration(sendingDefaultConfig,
-				 PLUGIN_UNDEFINED);
+	// Read first the sending process configuration
+	this->fetchConfiguration(sendingDefaultConfig, PLUGIN_UNDEFINED);
 
-        if (m_plugin_name == PLUGIN_UNDEFINED) {
-
+        // Ends the execution if the plug-in is not defined
+        if (m_plugin_name == PLUGIN_UNDEFINED)
+        {
                 // Ends the execution if the plug-in is not defined
-
                 string errMsg(LOG_SERVICE_NAME + " - the plugin-in is not defined for the sending process :" +  this->getName() + " :.");
 
                 m_logger->fatal(errMsg);
@@ -152,11 +145,12 @@ SendingProcess::SendingProcess(int argc, char** argv) : FogLampProcess(argc, arg
                 throw runtime_error(errMsg);
         }
 
-        // Reads the sending process configuration merged with the ones related to the loaded plugin
-        const map<string, string>& config = this->fetchConfiguration(sendingDefaultConfig,
-                                                                     m_plugin_name);
+        // Read now the sending process configuration merged with the one
+	// related to the loaded plugin
+        ConfigCategory config = this->fetchConfiguration(sendingDefaultConfig,
+							 m_plugin_name);
 
-        m_logger->debug("%s - stream-id :%d:", LOG_SERVICE_NAME.c_str() , m_stream_id);
+        m_logger->debug("%s - stream-id :%d:", LOG_SERVICE_NAME.c_str(), m_stream_id);
 
         // Checks if stream-id is undefined, it allocates a new one in the case
         if (m_stream_id == 0) {
@@ -207,8 +201,11 @@ SendingProcess::SendingProcess(int argc, char** argv) : FogLampProcess(argc, arg
                 }
         }
 
-        // Init plugin with merged configuration from FogLAMP API
-	this->m_plugin->init(config);
+	// Init plugin with merged configuration from FogLAMP API
+	if (!this->m_plugin->init(config))
+	{
+		throw runtime_error("Plugin " + m_plugin_name + " initialisation failed.");
+	}
 
 	// Fetch last_object sent from foglamp.streams
 	if (!this->getLastSentReadingId())
@@ -517,94 +514,73 @@ bool SendingProcess::createStream(int streamId)
  * configuration manager and a merged one with "value" and "default"
  * is returned.
  *
- * Return the configuration items as a map of JSON strings
+ * Return the configuration items as a ConfigCategory object
  */
-const map<string, string>& SendingProcess::fetchConfiguration(const std::string& defaultConfig,
-							      const std::string&  plugin_name)
+ConfigCategory SendingProcess::fetchConfiguration(const std::string& defaultConfig,
+						  const std::string& plugin_name)
 {
 
-	// retrieves the configuration using the value of the --name parameter (received in the command line) as the key
-	string catName(this->getName());
-	Logger::getLogger()->debug("%s - catName :%s:", LOG_SERVICE_NAME.c_str(), catName.c_str());
+	// retrieves the configuration using the value of the --name parameter
+	// (received in the command line) as the key
+	string categoryName(this->getName());
+	Logger::getLogger()->debug("%s - catName :%s:",
+				   LOG_SERVICE_NAME.c_str(),
+				   categoryName.c_str());
 
-	// Build JSON merged configuration (sendingProcess + pluginConfig
-	string config("{ ");
-
-	if (plugin_name != PLUGIN_UNDEFINED) {
-
-		config.append(this->m_plugin->config()[string(PLUGIN_CONFIG_KEY)]);
-		config += ", ";
-	}
-	config.append(defaultConfig);
-	config += " }";
-
+	ConfigCategory configuration;
 	try
 	{
 		// Create category, with "default" values only 
-		DefaultConfigCategory category(catName, config);
+		DefaultConfigCategory category(categoryName, defaultConfig);
 		category.setDescription(CONFIG_CATEGORY_DESCRIPTION);
 
+		// Build JSON merged configuration (sendingProcess + pluginConfig
+		if (plugin_name != PLUGIN_UNDEFINED)
+		{
+			// Get plugin default config via API method "plugin_info"
+			PLUGIN_INFORMATION* info = this->m_plugin->info();
+			DefaultConfigCategory pluginInfo(categoryName, info->config);
+			// Copy all pluginInfo items into current sendingProcess config
+			category = pluginInfo;
+		}
+
+		// Create/Update configuration category categoryNamegory categoryName
 		if (!this->getManagementClient()->addCategory(category, true))
 		{
 			string errMsg("Failure creating/updating configuration key '");
-			errMsg.append(catName);
+			errMsg.append(categoryName);
 			errMsg += "'";
 
 			Logger::getLogger()->fatal(errMsg.c_str());
 			throw runtime_error(errMsg);
 		}
 
-		bool plugin_types_key_present = false;
-
-		if (plugin_name != PLUGIN_UNDEFINED) {
-
-			const map<const string, const string>& plugin_cfg_map = this->m_plugin->config();
-			if (plugin_cfg_map.find(string(PLUGIN_TYPES_KEY)) != plugin_cfg_map.end()) {
-				plugin_types_key_present = true;
-				// Create types category, with "default" values only
-				string configTypes("{ ");
-				configTypes.append(this->m_plugin->config()[string(PLUGIN_TYPES_KEY)]);
-				configTypes += " }";
-
-				DefaultConfigCategory types(string(PLUGIN_TYPES_KEY), configTypes);
-				category.setDescription(CATEGORY_OMF_TYPES_DESCRIPTION);  // should be types.setDescription?
-
-				if (!this->getManagementClient()->addCategory(types, true)) {
-					string errMsg("Failure creating/updating configuration key '");
-					errMsg.append(PLUGIN_TYPES_KEY);
-					errMsg += "'";
-
-					Logger::getLogger()->fatal(errMsg.c_str());
-					throw runtime_error(errMsg);
-				}
-			}
-			else
-				Logger::getLogger()->debug("Key '%s' missing from plugin config map (required for OMF north plugin only at the moment)", PLUGIN_TYPES_KEY);
-		}
-
 		// Get the category with values and defaults
-		ConfigCategory sendingProcessConfig = this->getManagementClient()->getCategory(catName);
-		ConfigCategory pluginTypes;
+		configuration = this->getManagementClient()->getCategory(categoryName);
 
-		if (plugin_name != PLUGIN_UNDEFINED && plugin_types_key_present) {
-
-			// Get the category with values and defaults for OMF_TYPES
-			pluginTypes = this->getManagementClient()->getCategory(string(PLUGIN_TYPES_KEY));
+		// Handle additional configuration categories
+		// the loaded plugins might need
+		if (plugin_name != PLUGIN_UNDEFINED)
+		{
+			// Additional items will be added to sendingProcessConfig:
+			// CATEGORY_NAME.ITEM_NAME
+			// Example: OMF_TYPES.type-id
+			handleAdditionalConfiguration(configuration,
+						      this->m_plugin->extra_config());
 		}
 
 		/**
 		 * Handle the sending process parameters here
 		 */
+		string blockSize = configuration.getValue("blockSize");
+		string duration = configuration.getValue("duration");
+		string sleepInterval = configuration.getValue("sleepInterval");
 
-		string blockSize = sendingProcessConfig.getValue("blockSize");
-		string duration = sendingProcessConfig.getValue("duration");
-		string sleepInterval = sendingProcessConfig.getValue("sleepInterval");
-
-                // Handles the case in which the stream_id is not defined in the configuration
-                // and sets it to not defined (0)
+                // Handles the case in which the stream_id is not defined
+                // in the configuration and set it to not defined (0)
                 string streamId = "";
                 try {
-                        streamId = sendingProcessConfig.getValue("streamId");
+                        streamId = configuration.getValue("streamId");
                 } catch (std::exception* e) {
 
                         delete e;
@@ -615,7 +591,7 @@ const map<string, string>& SendingProcess::fetchConfiguration(const std::string&
 
                 // sets to undefined if not defined in the configuration
                 try {
-                        m_plugin_name = sendingProcessConfig.getValue("plugin");
+                        m_plugin_name = configuration.getValue("plugin");
                 } catch (std::exception* e) {
 
                         delete e;
@@ -632,9 +608,10 @@ const map<string, string>& SendingProcess::fetchConfiguration(const std::string&
 		m_duration = strtoul(duration.c_str(), NULL, 10);
                 m_stream_id = atoi(streamId.c_str());
 		// Set the data source type: readings (default) or statistics
-		m_data_source_t = sendingProcessConfig.getValue("source");
+		m_data_source_t = configuration.getValue("source");
 
-		Logger::getLogger()->info("SendingProcess configuration parameters: pluginName=%s, blockSize=%d, "
+		Logger::getLogger()->info("SendingProcess configuration parameters: "
+					  "pluginName=%s, blockSize=%d, "
 					  "duration=%d, sleepInterval=%d, streamId=%d",
 					  plugin_name.c_str(),
 					  m_block_size,
@@ -642,22 +619,16 @@ const map<string, string>& SendingProcess::fetchConfiguration(const std::string&
 					  m_sleep,
                                           m_stream_id);
 
-		globalConfiguration[string(GLOBAL_CONFIG_KEY)] = sendingProcessConfig.itemsToJSON();
-
-		if (plugin_name != PLUGIN_UNDEFINED && plugin_types_key_present) {
-			globalConfiguration[string(PLUGIN_TYPES_KEY)] = pluginTypes.itemsToJSON();
-		}
-
-		// Return both values & defaults for config items only
-		return globalConfiguration;
+		// Return configuration
+		return ConfigCategory(configuration);
 	}
 	catch (std::exception* e)
 	{
-		return globalConfiguration;
+		return configuration;
 	}
 	catch (...)
 	{
-		return globalConfiguration;
+		return configuration;
 	}
 }
 
@@ -842,4 +813,80 @@ bool SendingProcess::setupFiltersPipeline() const
 
 	//Success
 	return true;
+}
+
+/**
+ * Create/Update the additional configuration categories
+ * needed by the loaded plugin
+ *
+ * Category items are added to current configurstion
+ * being passed to "plugin_init"
+ *
+ * @param configuration		Current configuration to updata
+ *				with additional items
+ * @param pluginExtraConfig	JSON string with categories
+ *				fetched via "plugin_extra_config"
+ * @throw			runtime_error exception
+ */
+void SendingProcess::handleAdditionalConfiguration(ConfigCategory& configuration,
+						   const string& pluginExtraConfig)
+{
+	if (pluginExtraConfig.empty())
+	{
+		// Extra configuration is not set or plugin API method
+		// "plugin_extra_config" doesn't exist
+		return;
+	}
+
+	// Parse extra configuration: JSON object
+	Document extraCategories;
+	extraCategories.Parse(pluginExtraConfig.c_str());
+	if (extraCategories.HasParseError())
+	{
+		throw runtime_error("Failure parsing 'extra_config'");
+	}
+
+	for (auto it = extraCategories.MemberBegin(); it != extraCategories.MemberEnd(); ++it)
+	{
+		rapidjson::StringBuffer strbuf;
+		rapidjson::Writer<rapidjson::StringBuffer> writer(strbuf);
+
+		// Get string value of category key
+		it->value.Accept(writer);
+
+		// Create/Update default category extraCategoryName
+		string extraCategoryName = it->name.GetString();
+		// Add string value of it->value
+		DefaultConfigCategory updateCategory(extraCategoryName,
+						     strbuf.GetString());
+		updateCategory.setDescription("Configuration of " + extraCategoryName);
+		if (!this->getManagementClient()->addCategory(updateCategory, true))
+		{
+			string errMsg("Failure creating/updating extra configuration key '");
+			errMsg.append(extraCategoryName);
+			errMsg += "'";
+
+			Logger::getLogger()->fatal(errMsg.c_str());
+			throw runtime_error(errMsg);
+		}
+
+		// Fetch extraCategoryName current values
+		ConfigCategory currCategory = this->getManagementClient()->getCategory(extraCategoryName);
+
+		Document tempDoc;
+		tempDoc.Parse(currCategory.itemsToJSON().c_str());
+		if (tempDoc.HasParseError())
+		{
+			throw runtime_error("Error while parsing extra category '" + extraCategoryName + "'");
+		}
+
+		// Add each category to sendingProcessConfig config
+		for (auto itr = tempDoc.MemberBegin(); itr != tempDoc.MemberEnd(); ++itr)
+		{
+			// Add items to input category configuration
+			// item name set is category_name + . + item_name
+			configuration.addItem(extraCategoryName + "." + itr->name.GetString(),
+					      itr->value);
+		}
+	}
 }

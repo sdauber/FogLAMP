@@ -1,5 +1,5 @@
 /*
- * FogLAMP OMF north plugin.
+ * FogLAMP PI_Server north plugin.
  *
  * Copyright (c) 2018 Dianomic Systems
  *
@@ -22,6 +22,7 @@
 
 using namespace std;
 
+#define PLUGIN_NAME "PI_Server"
 /**
  * Plugin specific default configuration
  */
@@ -49,17 +50,10 @@ using namespace std;
 				"\"type\": \"string\", \"default\": \"float64\" }, " \
 			"\"formatInteger\": { " \
         			"\"description\": \"OMF format property to apply to the type Integer\", " \
-				"\"type\": \"string\", \"default\": \"int64\" }, " \
-			"\"applyFilter\": { " \
-        			"\"description\": \"Whether to apply filter before processing the data\", " \
-				"\"type\": \"boolean\", \"default\": \"False\" }, " \
-			"\"filterRule\": { " \
-				"\"description\": \"JQ formatted filter to apply (applicable if applyFilter is True)\", " \
-				"\"type\": \"string\", \"default\": \".[]\" }"
+				"\"type\": \"string\", \"default\": \"int64\" } " 
 
-
-
-#define OMF_PLUGIN_DESC "\"plugin\": {\"description\": \"OMF North C Plugin\", \"type\": \"string\", \"default\": \"omf\"}"
+#define OMF_PLUGIN_DESC "\"plugin\": {\"description\": \"OMF North C Plugin\", " \
+			"\"type\": \"string\", \"default\": \"" PLUGIN_NAME "\"}"
 
 #define PLUGIN_DEFAULT_CONFIG_INFO "{" OMF_PLUGIN_DESC ", " PLUGIN_DEFAULT_CONFIG "}"
 
@@ -72,29 +66,37 @@ extern "C" {
  * The C API plugin information structure
  */
 static PLUGIN_INFORMATION info = {
-	"OMF",				// Name
-	"1.0.0",			// Version
+	PLUGIN_NAME,			// Name
+	"1.1.0",			// Version
 	0,				// Flags
 	PLUGIN_TYPE_NORTH,		// Type
 	"1.0.0",			// Interface version
-	PLUGIN_DEFAULT_CONFIG_INFO   // Configuration
+	PLUGIN_DEFAULT_CONFIG_INFO	// Configuration
 };
 
-static const string omf_types_default_config =
-			"\"type-id\": { "
-				"\"description\": \"Identify sensor and measurement types\", "
-				"\"type\": \"integer\", \"default\": \"0002\" }";
-
-static const map<const string, const string> plugin_configuration = {
-					{
-						"OMF_TYPES",
-						omf_types_default_config
-					},
-					{
-						"PLUGIN",
-						string(PLUGIN_DEFAULT_CONFIG)
-					},
-				 };
+/**
+ * All categories listed here are fetched via
+ * "plugin_extra_config" API method
+ *
+ * The code wich loads this plugin must
+ * create/update these categories and pass back
+ * to the plugin via "plugin_init" the additional
+ * category items in this form: CATEGORY.ITEM_NAME
+ *
+ * Example: once OMF_TYPES has been fetched
+ * by the code which loads this plugin,
+ * the OMF_TYPES.type-id item is passed
+ * as an additional item
+ */
+static const string additional_config_categories =
+			"{"
+			    "\"OMF_TYPES\": {"
+				"\"type-id\": { "
+				    "\"description\": \"Identify sensor and measurement types\", "
+				    "\"type\": \"integer\", "
+				    "\"default\": \"0001\" }"
+			    "}"
+			"}";
 
 /**
  * Historian PI Server connector info
@@ -121,39 +123,47 @@ PLUGIN_INFORMATION *plugin_info()
  * Return default plugin configuration:
  * plugin specific and types_id
  */
-const map<const string, const string>& plugin_config()
+const string& plugin_extra_config()
 {
-	return plugin_configuration;
+	return additional_config_categories;
 }
 
 /**
  * Initialise the plugin with configuration.
  *
- * This funcion is called to get the plugin handle.
+ * This function is called to get the plugin handle.
  */
-PLUGIN_HANDLE plugin_init(map<string, string>&& configData)
+PLUGIN_HANDLE plugin_init(ConfigCategory* configData)
 {
 	/**
-	 * Handle the OMF parameters here
+	 * Handle plugin the parameters here
 	 */
-	ConfigCategory configCategory("cfg", configData["GLOBAL_CONFIGURATION"]);
-	string url = configCategory.getValue("URL");
-	unsigned int timeout = atoi(configCategory.getValue("OMFHttpTimeout").c_str());
-	string producerToken = configCategory.getValue("producerToken");
+	string url = configData->getValue("URL");
+	unsigned int timeout = atoi(configData->getValue("OMFHttpTimeout").c_str());
+	string producerToken = configData->getValue("producerToken");
 
-	string formatNumber = configCategory.getValue("formatNumber");
-	string formatInteger = configCategory.getValue("formatInteger");
+	string formatNumber = configData->getValue("formatNumber");
+	string formatInteger = configData->getValue("formatInteger");
 
 	/**
-	 * Handle the OMF_TYPES parameters here
+	 * Handle extra config parameters here (i.e. OMF_TYPES)
 	 */
-	ConfigCategory configTypes("types", configData["OMF_TYPES"]);
-	string typesId = configTypes.getValue("type-id");
+	if (!configData->itemExists("OMF_TYPES.type-id"))
+	{
+		Logger::getLogger()->error("%s: needed 'type-id' item from "
+					   "extra category 'OMF_TYPES' not found. "
+					   "Be sure all additional category items are "
+					   "passed to 'plugin_info'. "
+					   "Initialisation failed.",
+					   PLUGIN_NAME);
+		return NULL;
+	}
+
+	string typesId = configData->getValue("OMF_TYPES.type-id");
 
 	/**
 	 * Extract host, port, path from URL
 	 */
-
 	size_t findProtocol = url.find_first_of(":");
 	string protocol = url.substr(0,findProtocol);
 
@@ -183,15 +193,16 @@ PLUGIN_HANDLE plugin_init(map<string, string>&& configData)
 	connector_info.omf->setFormatType(OMF_TYPE_FLOAT, formatNumber);
 	connector_info.omf->setFormatType(OMF_TYPE_INTEGER, formatInteger);
 
-	Logger::getLogger()->info("OMF plugin configured: URL=%s, "
+	Logger::getLogger()->info("%s plugin configured: URL=%s, "
 				  "producerToken=%s, OMF_types_id=%s",
+				  PLUGIN_NAME,
 				  url.c_str(),
 				  producerToken.c_str(),
 				  typesId.c_str());
 
 
-	// TODO: return a more useful data structure for pluin handle
-	string* handle = new string("Init done");
+	// Return plugin handle
+	string* handle = new string(string(PLUGIN_NAME) + " initialised");
 
 	return (PLUGIN_HANDLE)handle;
 }

@@ -236,15 +236,33 @@ void ConfigCategory::checkDefaultValuesOnly() const
 }
 
 /**
- * Add an item to a configuration category
+ * Add an item to a category
+ *
+ * @param name	The item name
+ * @param item	The item value
  */
-void ConfigCategory::addItem(const std::string& name, const std::string description,
-                             const std::string& type, const std::string def,
-                             const std::string& value)
+void ConfigCategory::addItem(const std::string& name,
+			     const Value& item)
 {
-	m_items.push_back(new CategoryItem(name, description, type, def, value));
+
+	m_items.push_back(new CategoryItem(name, item));
 }
 
+/**
+ * Add an item to a configuration category
+ */
+void ConfigCategory::addItem(const std::string& name,
+			     const std::string description,
+                             const std::string& type,
+			     const std::string def,
+                             const std::string& value)
+{
+	m_items.push_back(new CategoryItem(name,
+					   description,
+					   type,
+					   def,
+					   value));
+}
 
 /**
  * Check for the existance of an item within the configuration category
