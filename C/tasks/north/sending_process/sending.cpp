@@ -146,7 +146,7 @@ SendingProcess::SendingProcess(int argc, char** argv) : FogLampProcess(argc, arg
         }
 
         // Read now the sending process configuration merged with the one
-	// related to the loaded plugin
+        // related to the loaded plugin
         ConfigCategory config = this->fetchConfiguration(sendingDefaultConfig,
 							 m_plugin_name);
 

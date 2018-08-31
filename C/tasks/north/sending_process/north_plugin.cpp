@@ -13,6 +13,9 @@
 
 using namespace std;
 
+// Empty value for "plugin_extra_config"
+static string empty_extra_config;
+
 /**
  * Constructor for the class that wraps the OMF north plugin
  *
@@ -71,20 +74,14 @@ PLUGIN_INFORMATION* NorthPlugin::info() const
         return this->pluginInfo();
 }
 
-static string empty_extra_config;
 /**
  * Return plugin additional configuration
  */
 string& NorthPlugin::extra_config() const
 {
-	if (pluginExtraConfig != NULL)
-	{
-		return this->pluginExtraConfig();
-	}
-	else
-	{
-		return empty_extra_config;
-	}
+	return pluginExtraConfig ?
+		this->pluginExtraConfig() :
+		empty_extra_config;
 }
 
 /**
