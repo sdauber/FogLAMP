@@ -27,7 +27,12 @@ using namespace rapidjson;
 /**
  * Plugin specific default configuration
  */
-#define PLUGIN_DEFAULT_CONFIG "\"URL\": { " \
+#define PLUGIN_DEFAULT_CONFIG "{ " \
+			"\"plugin\": { " \
+				"\"description\": \"ThingSpeak North\", " \
+				"\"type\": \"string\", " \
+				"\"default\": \"thingspeak\" }, " \
+			"\"URL\": { " \
 				"\"description\": \"The URL of the ThingSpeak service\", " \
 				"\"type\": \"string\", " \
 				"\"default\": \"https://api.thingspeak.com/channels\" }, " \
@@ -43,12 +48,8 @@ using namespace rapidjson;
 				    "\"elements\":[" \
 				    "{ \"asset\":\"sinusoid\"," \
 				    "\"reading\":\"sinusoid\"}" \
-				"]} }"
-		
-
-#define THINGSPEAK_PLUGIN_DESC "\"plugin\": {\"description\": \"ThingSpeak North\", \"type\": \"string\", \"default\": \"thingspeak\"}"
-
-#define PLUGIN_DEFAULT_CONFIG_INFO "{" THINGSPEAK_PLUGIN_DESC ", " PLUGIN_DEFAULT_CONFIG "}"
+				"]} } " \
+		"}"
 
 /**
  * The ThingSpeak plugin interface
@@ -64,7 +65,7 @@ static PLUGIN_INFORMATION info = {
 	0,				// Flags
 	PLUGIN_TYPE_NORTH,		// Type
 	"1.0.0",			// Interface version
-	PLUGIN_DEFAULT_CONFIG_INFO   	// Configuration
+	PLUGIN_DEFAULT_CONFIG		// Configuration
 };
 
 /**

@@ -23,10 +23,16 @@
 using namespace std;
 
 #define PLUGIN_NAME "PI_Server"
+
 /**
  * Plugin specific default configuration
  */
-#define PLUGIN_DEFAULT_CONFIG "\"URL\": { " \
+#define PLUGIN_DEFAULT_CONFIG "{ " \
+			"\"plugin\": { " \
+				"\"description\": \"PI Server North C Plugin\", " \
+				"\"type\": \"string\", " \
+				"\"default\": \"" PLUGIN_NAME "\" }, " \
+			"\"URL\": { " \
 				"\"description\": \"The URL of the PI Connector to send data to\", " \
 				"\"type\": \"string\", " \
 				"\"default\": \"https://pi-server:5460/ingress/messages\" }, " \
@@ -43,22 +49,18 @@ using namespace std;
         			"\"description\": \"Seconds between each retry for the communication with the OMF PI Connector Relay, " \
                        		"NOTE : the time is doubled at each attempt.\", \"type\": \"integer\", \"default\": \"1\" }, " \
 			"\"StaticData\": { " \
-				"\"description\": \"Static data to include in each sensor reading sent to OMF.\", " \
+				"\"description\": \"Static data to include in each sensor reading sent to PI Server.\", " \
 				"\"type\": \"string\", \"default\": \"Location: Palo Alto, Company: Dianomic\" }, " \
 			"\"formatNumber\": { " \
         			"\"description\": \"OMF format property to apply to the type Number\", " \
 				"\"type\": \"string\", \"default\": \"float64\" }, " \
 			"\"formatInteger\": { " \
         			"\"description\": \"OMF format property to apply to the type Integer\", " \
-				"\"type\": \"string\", \"default\": \"int64\" } " 
-
-#define OMF_PLUGIN_DESC "\"plugin\": {\"description\": \"OMF North C Plugin\", " \
-			"\"type\": \"string\", \"default\": \"" PLUGIN_NAME "\"}"
-
-#define PLUGIN_DEFAULT_CONFIG_INFO "{" OMF_PLUGIN_DESC ", " PLUGIN_DEFAULT_CONFIG "}"
+				"\"type\": \"string\", \"default\": \"int64\" } " \
+		" }"
 
 /**
- * The OMF plugin interface
+ * The PI Server plugin interface
  */
 extern "C" {
 
@@ -71,7 +73,7 @@ static PLUGIN_INFORMATION info = {
 	0,				// Flags
 	PLUGIN_TYPE_NORTH,		// Type
 	"1.0.0",			// Interface version
-	PLUGIN_DEFAULT_CONFIG_INFO	// Configuration
+	PLUGIN_DEFAULT_CONFIG		// Configuration
 };
 
 /**
@@ -136,7 +138,7 @@ const string& plugin_extra_config()
 PLUGIN_HANDLE plugin_init(ConfigCategory* configData)
 {
 	/**
-	 * Handle plugin the parameters here
+	 * Handle PI Server parameters here
 	 */
 	string url = configData->getValue("URL");
 	unsigned int timeout = atoi(configData->getValue("OMFHttpTimeout").c_str());
@@ -184,7 +186,7 @@ PLUGIN_HANDLE plugin_init(ConfigCategory* configData)
 	string hostAndPort(hostName + ":" + port);	
 	connector_info.sender = new SimpleHttps(hostAndPort, timeout, timeout);
 
-	// Allocate the OMF data protocol
+	// Allocate the PI Server data protocol
 	connector_info.omf = new OMF(*connector_info.sender,
 				     path,
 				     typesId,

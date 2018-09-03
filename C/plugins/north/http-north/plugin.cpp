@@ -21,7 +21,12 @@ using namespace std;
 /**
  * Plugin specific default configuration
  */
-#define PLUGIN_DEFAULT_CONFIG "\"URL\": { " \
+#define PLUGIN_DEFAULT_CONFIG "{ " \
+			"\"plugin\": { " \
+				"\"description\": \"HTTP North C Plugin\", " \
+				"\"type\": \"string\", " \
+				"\"default\": \"http-north\" }, " \
+			"\"URL\": { " \
 				"\"description\": \"The URL of the HTTP Connector to send data to\", " \
 				"\"type\": \"string\", " \
 				"\"default\": \"http://localhost:6683/sensor-reading\" }, " \
@@ -30,17 +35,8 @@ using namespace std;
 				"\"type\": \"integer\", \"default\": \"10\" }, " \
 			"\"verifySSL\": { " \
         			"\"description\": \"Verify SSL certificate\", " \
-				"\"type\": \"boolean\", \"default\": \"False\" }, " \
-			"\"applyFilter\": { " \
-        			"\"description\": \"Whether to apply filter before processing the data\", " \
-				"\"type\": \"boolean\", \"default\": \"False\" }, " \
-			"\"filterRule\": { " \
-				"\"description\": \"JQ formatted filter to apply (applicable if applyFilter is True)\", " \
-				"\"type\": \"string\", \"default\": \".[]\" }"
-
-#define HTTP_NORTH_PLUGIN_DESC "\"plugin\": {\"description\": \"HTTP North C Plugin\", \"type\": \"string\", \"default\": \"http-north\"}"
-
-#define PLUGIN_DEFAULT_CONFIG_INFO "{" HTTP_NORTH_PLUGIN_DESC ", " PLUGIN_DEFAULT_CONFIG "}"
+				"\"type\": \"boolean\", \"default\": \"False\" } " \
+		" }"
 
 /**
  * The HTTP north plugin interface
@@ -56,7 +52,7 @@ static PLUGIN_INFORMATION info = {
 	0,				// Flags
 	PLUGIN_TYPE_NORTH,		// Type
 	"1.0.0",			// Interface version
-	PLUGIN_DEFAULT_CONFIG_INFO	// Configuration
+	PLUGIN_DEFAULT_CONFIG		// Configuration
 };
 
 /**
