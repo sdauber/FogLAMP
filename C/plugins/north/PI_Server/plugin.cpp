@@ -16,9 +16,9 @@
 #include <plugin_exception.h>
 #include <iostream>
 #include <omf.h>
+#include "simple_http.h"
 #include <simple_https.h>
 #include <config_category.h>
-#include <storage_client.h>
 
 using namespace std;
 
@@ -105,13 +105,9 @@ static const string additional_config_categories =
  */
 typedef struct
 {
-	SimpleHttps	*sender;  // HTTPS connection
+	HttpSender	*sender;  // HTTP/HTTPS connection
 	OMF 		*omf;     // OMF data protocol
 } CONNECTOR_INFO;
-
-static CONNECTOR_INFO connector_info;
-
-static StorageClient* storage;
 
 /**
  * Return the information about this plugin
@@ -177,23 +173,42 @@ PLUGIN_HANDLE plugin_init(ConfigCategory* configData)
 	string port = tmpUrl.substr(findPort + 1 , findPath - findPort -1);
 	string path = tmpUrl.substr(findPath);
 
+	string hostAndPort(hostName + ":" + port);
+
+	CONNECTOR_INFO *connectorInfo = new CONNECTOR_INFO;
 	/**
 	 * Allocate the HTTPS handler for "Hostname : port"
 	 * connect_timeout and request_timeout.
 	 * Default is no timeout at all
 	 */
-
-	string hostAndPort(hostName + ":" + port);	
-	connector_info.sender = new SimpleHttps(hostAndPort, timeout, timeout);
+	if (protocol == string("http"))
+	{
+		connectorInfo->sender = new SimpleHttp(hostAndPort,
+							timeout,
+							timeout);
+	}
+	else if (protocol == string("https"))
+	{
+		connectorInfo->sender = new SimpleHttps(hostAndPort,
+							timeout,
+							timeout);
+	}
+	else
+	{
+		Logger::getLogger()->error("Didn't find http/https prefix "
+					   "in URL='%s', cannot proceed",
+					   url.c_str());
+		return NULL;
+	}
 
 	// Allocate the PI Server data protocol
-	connector_info.omf = new OMF(*connector_info.sender,
+	connectorInfo->omf = new OMF(*connectorInfo->sender,
 				     path,
 				     typesId,
 				     producerToken);
 
-	connector_info.omf->setFormatType(OMF_TYPE_FLOAT, formatNumber);
-	connector_info.omf->setFormatType(OMF_TYPE_INTEGER, formatInteger);
+	connectorInfo->omf->setFormatType(OMF_TYPE_FLOAT, formatNumber);
+	connectorInfo->omf->setFormatType(OMF_TYPE_INTEGER, formatInteger);
 
 	Logger::getLogger()->info("%s plugin configured: URL=%s, "
 				  "producerToken=%s, OMF_types_id=%s",
@@ -204,9 +219,7 @@ PLUGIN_HANDLE plugin_init(ConfigCategory* configData)
 
 
 	// Return plugin handle
-	string* handle = new string(string(PLUGIN_NAME) + " initialised");
-
-	return (PLUGIN_HANDLE)handle;
+	return (PLUGIN_HANDLE)connectorInfo;
 }
 
 /**
@@ -215,7 +228,8 @@ PLUGIN_HANDLE plugin_init(ConfigCategory* configData)
 uint32_t plugin_send(const PLUGIN_HANDLE handle,
 		     const vector<Reading *>& readings)
 {
-	return connector_info.omf->sendToServer(readings);
+	CONNECTOR_INFO *connInfo = (CONNECTOR_INFO *)handle;
+	return connInfo->omf->sendToServer(readings);
 }
 
 /**
@@ -227,13 +241,15 @@ uint32_t plugin_send(const PLUGIN_HANDLE handle,
  */
 void plugin_shutdown(PLUGIN_HANDLE handle)
 {
+	CONNECTOR_INFO *connInfo = (CONNECTOR_INFO *)handle;
+
 	// Delete connector data
-	delete connector_info.sender;
-	delete connector_info.omf;
+	delete connInfo->sender;
+	delete connInfo->omf;
 
 	// Delete the handle
-	string* data = (string *)handle;
-        delete data;
+	delete connInfo;
+
 }
 
 // End of extern "C"
