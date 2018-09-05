@@ -604,8 +604,45 @@ class PayloadBuilder(object):
 
         return cls
 
+    @staticmethod
+    def filter_identifier(identifier):
+        # Characters `(backtick),
+        #            '(single quote),
+        #            "(double quote),
+        #            [(left square bracket),
+        #            ](right square bracket)
+        # are not allowed
+        if not isinstance(identifier, str): return identifier
+        return identifier.\
+            replace('`', '').\
+            replace("'", "")
+
+    @classmethod
+    def clean_payload(cls, payload, new_payload):
+        if isinstance(payload, OrderedDict):
+            for i, v in payload.items():
+                i = cls.filter_identifier(i)
+                if isinstance(v, OrderedDict) or isinstance(v, list) or isinstance(v, tuple):
+                    new_payload2 = OrderedDict() if isinstance(v, OrderedDict) else \
+                                  list if isinstance(v, list) else tuple()
+                    v = cls.clean_payload(v, new_payload2)
+                else:
+                    v = cls.filter_identifier(v)
+                new_payload[i] = v
+            return new_payload
+        elif isinstance(payload, list) or isinstance(payload, tuple):
+            for idx, i in enumerate(payload):
+                if isinstance(i, OrderedDict) or isinstance(i, list) or isinstance(i, tuple):
+                    new_payload1 = OrderedDict() if isinstance(i, OrderedDict) else \
+                                  list if isinstance(i, list) else tuple()
+                    i = cls.clean_payload(i, new_payload1)
+                else:
+                    payload[idx] = cls.filter_identifier(i)
+        return payload
+
     @classmethod
     def payload(cls):
+        cls.query_payload = cls.clean_payload(cls.query_payload, OrderedDict())
         return json.dumps(cls.query_payload, sort_keys=False)
 
     @classmethod

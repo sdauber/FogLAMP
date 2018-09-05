@@ -8,6 +8,7 @@ import json
 import os
 import pytest
 import py
+
 from foglamp.common.storage_client.payload_builder import PayloadBuilder
 
 __author__ = "Vaibhav Singhal"
@@ -378,6 +379,20 @@ class TestPayloadBuilderRead:
             .AGGREGATE(["count", "name"]) \
             .payload()
 
+        assert _payload("data/payload_complex_select1.json") == json.loads(res)
+
+    def test_filter_identifier(self):
+        res = PayloadBuilder() \
+            .SELECT("i'`'`'d", "na'me") \
+            .WHERE(["i``````''''''d", "=", 1]) \
+            .AND_WHERE(["na`'me", "=", "te'`'`'st"]) \
+            .OR_WHERE(["n``ame", "=", "tes't2"]) \
+            .LIMIT(5) \
+            .OFFSET(1) \
+            .GROUP_BY("n'`'`'`ame", "i`''''''d") \
+            .ORDER_BY(["i'````d", "desc"]) \
+            .AGGREGATE(["count", "n`'ame"]) \
+            .payload()
         assert _payload("data/payload_complex_select1.json") == json.loads(res)
 
     def test_aggregate_with_where(self):
