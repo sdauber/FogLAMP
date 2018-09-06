@@ -18,6 +18,7 @@ import urllib.parse
 import numbers
 
 from foglamp.common import logger
+from foglamp.common.storage_client.exceptions import *
 
 
 _LOGGER = logger.setup(__name__)
@@ -36,10 +37,12 @@ class PayloadBuilder(object):
     # TODO: Add tests
 
     query_payload = None
+    action_on_identifier_error = None
 
-    def __init__(self, initial_payload=OrderedDict()):
+    def __init__(self, initial_payload=OrderedDict(), action_on_identifier_error='warn'):
         # TODO: Investigate why simple "self.__class__.query_payload = initial_payload" is not working
         self.__class__.query_payload = initial_payload if len(initial_payload) else OrderedDict()
+        self.__class__.action_on_identifier_error = action_on_identifier_error
 
     @staticmethod
     def verify_select(arg):
@@ -604,15 +607,17 @@ class PayloadBuilder(object):
 
         return cls
 
-    @staticmethod
-    def filter_identifier(identifier):
+    @classmethod
+    def filter_identifier(cls, identifier):
         # Characters `(backtick),
-        #            '(single quote),
-        #            "(double quote),
-        #            [(left square bracket),
-        #            ](right square bracket)
+        #            '(single quote)
         # are not allowed
         if not isinstance(identifier, str): return identifier
+        if '`' in identifier or "'" in identifier:
+            if cls.action_on_identifier_error == 'halt':
+                raise StorageServerError(code=404, reason="Invalid characters in payload", error=json.dumps(cls.query_payload))
+            else:
+                _LOGGER.exception("Invalid characters in payload will be removed --> %s", json.dumps(cls.query_payload))
         return identifier.\
             replace('`', '').\
             replace("'", "")

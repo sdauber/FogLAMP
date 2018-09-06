@@ -7,9 +7,12 @@
 import json
 import os
 import pytest
+from unittest.mock import MagicMock, call
 import py
 
+from foglamp.common.storage_client import payload_builder
 from foglamp.common.storage_client.payload_builder import PayloadBuilder
+from foglamp.common.storage_client.exceptions import *
 
 __author__ = "Vaibhav Singhal"
 __copyright__ = "Copyright (c) 2017 OSIsoft, LLC"
@@ -394,6 +397,49 @@ class TestPayloadBuilderRead:
             .AGGREGATE(["count", "n`'ame"]) \
             .payload()
         assert _payload("data/payload_complex_select1.json") == json.loads(res)
+
+    def test_filter_identifier_exception_halt(self, mocker):
+        log_exception = mocker.patch.object(payload_builder._LOGGER, "exception")
+        with pytest.raises(StorageServerError) as exinfo:
+            res = PayloadBuilder(action_on_identifier_error='halt') \
+                .SELECT("i'`'`'d", "na'me") \
+                .WHERE(["i``````''''''d", "=", 1]) \
+                .AND_WHERE(["na`'me", "=", "te'`'`'st"]) \
+                .OR_WHERE(["n``ame", "=", "tes't2"]) \
+                .LIMIT(5) \
+                .OFFSET(1) \
+                .GROUP_BY("n'`'`'`ame", "i`''''''d") \
+                .ORDER_BY(["i'````d", "desc"]) \
+                .AGGREGATE(["count", "n`'ame"]) \
+                .payload()
+        assert log_exception.call_count == 0
+        assert str(exinfo).endswith("""foglamp.common.storage_client.exceptions.StorageServerError: code: 404, reason:Invalid characters in payload, error:{"return": ["i'`'`'d", "na'me"], "where": {"column": "i``````''''''d", "condition": "=", "value": 1, "and": {"column": "na`'me", "condition": "=", "value": "te'`'`'st", "or": {"column": "n``ame", "condition": "=", "value": "tes't2"}}}, "limit": 5, "skip": 1, "group": "n'`'`'`ame, i`''''''d", "sort": {"column": "i'````d", "direction": "desc"}, "aggregate": {"operation": "count", "column": "n`'ame"}}""")
+
+    def test_filter_identifier_exception_warn(self, mocker):
+        log_exception = mocker.patch.object(payload_builder._LOGGER, "exception")
+        res = PayloadBuilder(action_on_identifier_error='warn') \
+            .SELECT("i'`'`'d", "na'me") \
+            .WHERE(["i``````''''''d", "=", 1]) \
+            .AND_WHERE(["na`'me", "=", "te'`'`'st"]) \
+            .OR_WHERE(["n``ame", "=", "tes't2"]) \
+            .LIMIT(5) \
+            .OFFSET(1) \
+            .GROUP_BY("n'`'`'`ame", "i`''''''d") \
+            .ORDER_BY(["i'````d", "desc"]) \
+            .AGGREGATE(["count", "n`'ame"]) \
+            .payload()
+        calls = [call('Invalid characters in payload will be removed --> %s', '{"return": ["i\'`\'`\'d", "na\'me"], "where": {"column": "i``````\'\'\'\'\'\'d", "condition": "=", "value": 1, "and": {"column": "na`\'me", "condition": "=", "value": "te\'`\'`\'st", "or": {"column": "n``ame", "condition": "=", "value": "tes\'t2"}}}, "limit": 5, "skip": 1, "group": "n\'`\'`\'`ame, i`\'\'\'\'\'\'d", "sort": {"column": "i\'````d", "direction": "desc"}, "aggregate": {"operation": "count", "column": "n`\'ame"}}'),
+                 call('Invalid characters in payload will be removed --> %s', '{"return": ["id", "na\'me"], "where": {"column": "i``````\'\'\'\'\'\'d", "condition": "=", "value": 1, "and": {"column": "na`\'me", "condition": "=", "value": "te\'`\'`\'st", "or": {"column": "n``ame", "condition": "=", "value": "tes\'t2"}}}, "limit": 5, "skip": 1, "group": "n\'`\'`\'`ame, i`\'\'\'\'\'\'d", "sort": {"column": "i\'````d", "direction": "desc"}, "aggregate": {"operation": "count", "column": "n`\'ame"}}'),
+                 call('Invalid characters in payload will be removed --> %s', '{"return": ["id", "name"], "where": {"column": "i``````\'\'\'\'\'\'d", "condition": "=", "value": 1, "and": {"column": "na`\'me", "condition": "=", "value": "te\'`\'`\'st", "or": {"column": "n``ame", "condition": "=", "value": "tes\'t2"}}}, "limit": 5, "skip": 1, "group": "n\'`\'`\'`ame, i`\'\'\'\'\'\'d", "sort": {"column": "i\'````d", "direction": "desc"}, "aggregate": {"operation": "count", "column": "n`\'ame"}}'),
+                 call('Invalid characters in payload will be removed --> %s', '{"return": ["id", "name"], "where": {"column": "i``````\'\'\'\'\'\'d", "condition": "=", "value": 1, "and": {"column": "na`\'me", "condition": "=", "value": "te\'`\'`\'st", "or": {"column": "n``ame", "condition": "=", "value": "tes\'t2"}}}, "limit": 5, "skip": 1, "group": "n\'`\'`\'`ame, i`\'\'\'\'\'\'d", "sort": {"column": "i\'````d", "direction": "desc"}, "aggregate": {"operation": "count", "column": "n`\'ame"}}'),
+                 call('Invalid characters in payload will be removed --> %s', '{"return": ["id", "name"], "where": {"column": "i``````\'\'\'\'\'\'d", "condition": "=", "value": 1, "and": {"column": "na`\'me", "condition": "=", "value": "te\'`\'`\'st", "or": {"column": "n``ame", "condition": "=", "value": "tes\'t2"}}}, "limit": 5, "skip": 1, "group": "n\'`\'`\'`ame, i`\'\'\'\'\'\'d", "sort": {"column": "i\'````d", "direction": "desc"}, "aggregate": {"operation": "count", "column": "n`\'ame"}}'),
+                 call('Invalid characters in payload will be removed --> %s', '{"return": ["id", "name"], "where": {"column": "i``````\'\'\'\'\'\'d", "condition": "=", "value": 1, "and": {"column": "na`\'me", "condition": "=", "value": "te\'`\'`\'st", "or": {"column": "n``ame", "condition": "=", "value": "tes\'t2"}}}, "limit": 5, "skip": 1, "group": "n\'`\'`\'`ame, i`\'\'\'\'\'\'d", "sort": {"column": "i\'````d", "direction": "desc"}, "aggregate": {"operation": "count", "column": "n`\'ame"}}'),
+                 call('Invalid characters in payload will be removed --> %s', '{"return": ["id", "name"], "where": {"column": "i``````\'\'\'\'\'\'d", "condition": "=", "value": 1, "and": {"column": "na`\'me", "condition": "=", "value": "te\'`\'`\'st", "or": {"column": "n``ame", "condition": "=", "value": "tes\'t2"}}}, "limit": 5, "skip": 1, "group": "n\'`\'`\'`ame, i`\'\'\'\'\'\'d", "sort": {"column": "i\'````d", "direction": "desc"}, "aggregate": {"operation": "count", "column": "n`\'ame"}}'),
+                 call('Invalid characters in payload will be removed --> %s', '{"return": ["id", "name"], "where": {"column": "i``````\'\'\'\'\'\'d", "condition": "=", "value": 1, "and": {"column": "na`\'me", "condition": "=", "value": "te\'`\'`\'st", "or": {"column": "n``ame", "condition": "=", "value": "tes\'t2"}}}, "limit": 5, "skip": 1, "group": "n\'`\'`\'`ame, i`\'\'\'\'\'\'d", "sort": {"column": "i\'````d", "direction": "desc"}, "aggregate": {"operation": "count", "column": "n`\'ame"}}'),
+                 call('Invalid characters in payload will be removed --> %s', '{"return": ["id", "name"], "where": {"column": "i``````\'\'\'\'\'\'d", "condition": "=", "value": 1, "and": {"column": "na`\'me", "condition": "=", "value": "te\'`\'`\'st", "or": {"column": "n``ame", "condition": "=", "value": "tes\'t2"}}}, "limit": 5, "skip": 1, "group": "n\'`\'`\'`ame, i`\'\'\'\'\'\'d", "sort": {"column": "i\'````d", "direction": "desc"}, "aggregate": {"operation": "count", "column": "n`\'ame"}}'),
+                 call('Invalid characters in payload will be removed --> %s', '{"return": ["id", "name"], "where": {"column": "i``````\'\'\'\'\'\'d", "condition": "=", "value": 1, "and": {"column": "na`\'me", "condition": "=", "value": "te\'`\'`\'st", "or": {"column": "n``ame", "condition": "=", "value": "tes\'t2"}}}, "limit": 5, "skip": 1, "group": "n\'`\'`\'`ame, i`\'\'\'\'\'\'d", "sort": {"column": "i\'````d", "direction": "desc"}, "aggregate": {"operation": "count", "column": "n`\'ame"}}')]
+        assert log_exception.call_count == 10
+        assert log_exception.has_calls(calls, any_order=True)
 
     def test_aggregate_with_where(self):
         res = PayloadBuilder().WHERE(["ts", "newer", 60]).AGGREGATE(["count", "*"]).payload()
