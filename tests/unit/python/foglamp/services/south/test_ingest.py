@@ -357,15 +357,14 @@ class TestIngest:
         assert 0 == len(Ingest._readings_lists[0])
 
         # WHEN
-        await Ingest.add_readings(asset=data['asset'],
-                                  timestamp=data['timestamp'],
-                                  key=data['key'],
-                                  readings=data['readings'])
+        with pytest.raises(RuntimeError):
+            await Ingest.add_readings(asset=data['asset'],
+                                      timestamp=data['timestamp'],
+                                      key=data['key'],
+                                      readings=data['readings'])
 
         # THEN
         assert 0 == len(Ingest._readings_lists[0])
-        assert 1 == log_warning.call_count
-        log_warning.assert_called_with('The South Service is stopping')
 
     @pytest.mark.asyncio
     async def test_add_readings_not_started(self, mocker):
@@ -433,35 +432,35 @@ class TestIngest:
 
         # WHEN
         # Check for asset None
-        with pytest.raises(ValueError):
+        with pytest.raises(RuntimeWarning):
             await Ingest.add_readings(asset=None,
                                       timestamp=data['timestamp'],
                                       key=data['key'],
                                       readings=data['readings'])
 
         # Check for asset not string
-        with pytest.raises(TypeError):
+        with pytest.raises(RuntimeWarning):
             await Ingest.add_readings(asset=123,
                                       timestamp=None,
                                       key=data['key'],
                                       readings=data['readings'])
 
         # Check for timestamp None
-        with pytest.raises(ValueError):
+        with pytest.raises(RuntimeWarning):
             await Ingest.add_readings(asset=data['asset'],
                                       timestamp=None,
                                       key=data['key'],
                                       readings=data['readings'])
 
         # Check for key str
-        with pytest.raises(TypeError):
+        with pytest.raises(RuntimeWarning):
             await Ingest.add_readings(asset=data['asset'],
                                       timestamp=data['timestamp'],
                                       key=123,
                                       readings=data['readings'])
 
         # Check for readings dict
-        with pytest.raises(TypeError):
+        with pytest.raises(RuntimeWarning):
             await Ingest.add_readings(asset=data['asset'],
                                       timestamp=data['timestamp'],
                                       key=data['key'],

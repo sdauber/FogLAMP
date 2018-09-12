@@ -472,6 +472,8 @@ class Ingest(object):
                 if len(cls._readings_lists[list_index]) < cls._readings_list_size:
                     cls._current_readings_list_index = list_index
                     return True
+
+        _LOGGER.warning('The ingest service is unavailable %s', list_index)
         return False
 
     @classmethod
@@ -547,8 +549,6 @@ class Ingest(object):
             if cls._stop:
                 raise RuntimeError('The South Service is stopping')
 
-            cls._readings_lists_not_full.clear()
-
             # Increment the count of received readings to be used for statistics update
             if asset.upper() in cls._sensor_stats:
                 cls._sensor_stats[asset.upper()] += 1
@@ -567,7 +567,6 @@ class Ingest(object):
             readings_list.append(read)
         except RuntimeWarning:
             cls.increment_discarded_readings()
-            _LOGGER.warning('All Ingest Queues are full')
         else:
             list_size = len(readings_list)
 
