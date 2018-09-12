@@ -97,7 +97,7 @@ INSERT INTO foglamp.schedules ( id, schedule_name, process_name, schedule_type,
                 NULL,                                   -- schedule_time
                 '01:00:00',                             -- schedule_interval (evey hour)
                 't',                                    -- exclusive
-                'fE NOT EXISTS (SELECT 1 FROM foglamp.schedules WHERE id = '
+                'f'					-- disabled
        WHERE NOT EXISTS (SELECT 1 FROM foglamp.schedules WHERE id = '6b25f4d9-c7f3-4fc8-bd4a-4cf79f7055ca');
 
 -- Readings OMF to PI
@@ -109,8 +109,8 @@ INSERT INTO foglamp.schedules ( id, schedule_name, process_name, schedule_type,
                 3,                                      -- schedule_type (interval)
                 NULL,                                   -- schedule_time
                 '00:00:30',                             -- schedule_interval
-                't',                                   -- exclusive
-                'f'                                   -- disabled
+                't',                                    -- exclusive
+                'f'                                     -- disabled
        WHERE NOT EXISTS (SELECT 1 FROM foglamp.schedules WHERE id = '2b614d26-760f-11e7-b5a5-be2e44b06b34');
 
 -- Statistics OMF to PI
@@ -122,8 +122,8 @@ INSERT INTO foglamp.schedules ( id, schedule_name, process_name, schedule_type,
                 3,                                      -- schedule_type (interval)
                 NULL,                                   -- schedule_time
                 '00:00:30',                             -- schedule_interval
-                't',                                   -- exclusive
-                'f'                                   -- disabled
+                't',                                    -- exclusive
+                'f'                                     -- disabled
        WHERE NOT EXISTS (SELECT 1 FROM foglamp.schedules WHERE id = '1d7c327e-7dae-11e7-bb31-be2e44b06b34');
 
 -- Readings OMF to OCS
@@ -135,7 +135,7 @@ INSERT INTO foglamp.schedules ( id, schedule_name, process_name, schedule_type,
                 3,                                      -- schedule_type (interval)
                 NULL,                                   -- schedule_time
                 '00:00:30',                             -- schedule_interval
-                't',                                   -- exclusive
-                'f'                                   -- disabled
+                't',                                    -- exclusive
+                'f'                                     -- disabled
       WHERE NOT EXISTS (SELECT 1 FROM foglamp.schedules WHERE id = '5d7fed92-fb9a-11e7-8c3f-9a214cf093ae');
 
