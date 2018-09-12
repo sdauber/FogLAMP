@@ -103,7 +103,7 @@ INSERT INTO foglamp.schedules ( id, schedule_name, process_name, schedule_type,
 -- DHT11 sensor south plugin - C Code
 INSERT INTO foglamp.schedules ( id, schedule_name, process_name, schedule_type,
                                 schedule_time, schedule_interval, exclusive, enabled )
-       SELECT ( '6b25f4d9-c7f3-4fc8-bd4a-4cf79f7055ca', -- id
+       SELECT '6b25f4d9-c7f3-4fc8-bd4a-4cf79f7055ca', -- id
                 'dht11',                                -- schedule_name
                 'dht11',                                -- process_name
                 1,                                      -- schedule_type (interval)
