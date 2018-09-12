@@ -98,7 +98,7 @@ INSERT INTO foglamp.schedules ( id, schedule_name, process_name, schedule_type,
                 '00:00:30',                             -- schedule_interval
                 true,                                   -- exclusive
                 false                                   -- disabled
-       WHERE NOT EXISTS (SELECT 1 FROM foglamp.schedules WHERE id = 'f1e3b377-5acb-4bde-93d5-b6a792f76e07');
+       WHERE NOT EXISTS (SELECT 1 FROM foglamp.schedules WHERE id = 'ccdf1ef8-7e02-11e8-adc0-fa7ae01bb3bc');
 
 -- DHT11 sensor south plugin - C Code
 INSERT INTO foglamp.schedules ( id, schedule_name, process_name, schedule_type,
@@ -111,7 +111,7 @@ INSERT INTO foglamp.schedules ( id, schedule_name, process_name, schedule_type,
                 '01:00:00',                             -- schedule_interval (evey hour)
                 true,                                   -- exclusive
                 false                                   -- disabled
-       WHERE NOT EXISTS (SELECT 1 FROM foglamp.schedules WHERE id = 'ccdf1ef8-7e02-11e8-adc0-fa7ae01bb3bc');
+       WHERE NOT EXISTS (SELECT 1 FROM foglamp.schedules WHERE id = '6b25f4d9-c7f3-4fc8-bd4a-4cf79f7055ca');
 
 -- Statistics OMF to PI - C Code
 INSERT INTO foglamp.schedules ( id, schedule_name, process_name, schedule_type,
@@ -124,7 +124,7 @@ INSERT INTO foglamp.schedules ( id, schedule_name, process_name, schedule_type,
                 '00:00:30',                             -- schedule_interval
                 true,                                    -- exclusive
                 false                                     -- disabled
-       WHERE NOT EXISTS (SELECT 1 FROM foglamp.schedules WHERE id = '6b25f4d9-c7f3-4fc8-bd4a-4cf79f7055ca');
+       WHERE NOT EXISTS (SELECT 1 FROM foglamp.schedules WHERE id = 'f1e3b377-5acb-4bde-93d5-b6a792f76e07');
 
 -- Readings OMF to PI
 INSERT INTO foglamp.schedules ( id, schedule_name, process_name, schedule_type,
