@@ -472,8 +472,6 @@ class Ingest(object):
                 if len(cls._readings_lists[list_index]) < cls._readings_list_size:
                     cls._current_readings_list_index = list_index
                     return True
-
-        _LOGGER.warning('The ingest service is unavailable %s', list_index)
         return False
 
     @classmethod
@@ -500,8 +498,7 @@ class Ingest(object):
                 An invalid value was provided
         """
         if cls._stop:
-            _LOGGER.warning('The South Service is stopping')
-            return
+            raise RuntimeError('The South Service is stopping')
 
         if not cls._started:
             raise RuntimeError('The South Service was not started')
@@ -535,62 +532,68 @@ class Ingest(object):
                 # Postgres allows values like 5 be converted to JSON
                 # Downstream processors can not handle this
                 raise TypeError('readings must be a dictionary')
-        except Exception:
+        except Exception as ex:
             cls.increment_discarded_readings()
-            raise
+            raise RuntimeWarning(str(ex))
 
         # Comment out to test IntegrityError
         # key = '123e4567-e89b-12d3-a456-426655440000'
 
-        # Wait for an empty slot in the list
-        while not cls.is_available():
-            cls._readings_lists_not_full.clear()
-            await cls._readings_lists_not_full.wait()
+        try:
+            # Check for an empty slot in the list
+            if not cls.is_available():
+                raise RuntimeWarning
+
             if cls._stop:
                 raise RuntimeError('The South Service is stopping')
 
-        # Increment the count of received readings to be used for statistics update
-        if asset.upper() in cls._sensor_stats:
-            cls._sensor_stats[asset.upper()] += 1
+            cls._readings_lists_not_full.clear()
+
+            # Increment the count of received readings to be used for statistics update
+            if asset.upper() in cls._sensor_stats:
+                cls._sensor_stats[asset.upper()] += 1
+            else:
+                cls._sensor_stats[asset.upper()] = 1
+
+            list_index = cls._current_readings_list_index
+            readings_list = cls._readings_lists[list_index]
+
+            read = dict()
+            read['asset_code'] = asset
+            read['read_key'] = str(key)
+            read['reading'] = readings
+            read['user_ts'] = timestamp
+
+            readings_list.append(read)
+        except RuntimeWarning:
+            cls.increment_discarded_readings()
+            _LOGGER.warning('All Ingest Queues are full')
         else:
-            cls._sensor_stats[asset.upper()] = 1
+            list_size = len(readings_list)
 
-        list_index = cls._current_readings_list_index
-        readings_list = cls._readings_lists[list_index]
+            # asset tracker checking
+            payload = {"asset": asset, "event": "Ingest", "service": cls._parent_service._name,
+                       "plugin": cls._parent_service._plugin_handle['plugin']['value']}
+            if payload not in cls._payload_events:
+                cls._parent_service._core_microservice_management_client.create_asset_tracker_event(payload)
+                cls._payload_events.append(payload)
 
-        read = dict()
-        read['asset_code'] = asset
-        read['read_key'] = str(key)
-        read['reading'] = readings
-        read['user_ts'] = timestamp
+            # _LOGGER.debug('Add readings list index: %s size: %s', cls._current_readings_list_index, list_size)
 
-        readings_list.append(read)
+            if list_size == 1:
+                cls._readings_list_not_empty[list_index].set()
 
-        list_size = len(readings_list)
+            if list_size == cls._readings_insert_batch_size:
+                cls._readings_list_batch_size_reached[list_index].set()
+                # _LOGGER.debug('Set event list index: %s size: %s', cls._current_readings_list_index, len(readings_list))
 
-        # asset tracker checking
-        payload = {"asset": asset, "event": "Ingest", "service": cls._parent_service._name,
-                   "plugin": cls._parent_service._plugin_handle['plugin']['value']}
-        if payload not in cls._payload_events:
-            cls._parent_service._core_microservice_management_client.create_asset_tracker_event(payload)
-            cls._payload_events.append(payload)
-
-        # _LOGGER.debug('Add readings list index: %s size: %s', cls._current_readings_list_index, list_size)
-
-        if list_size == 1:
-            cls._readings_list_not_empty[list_index].set()
-
-        if list_size == cls._readings_insert_batch_size:
-            cls._readings_list_batch_size_reached[list_index].set()
-            # _LOGGER.debug('Set event list index: %s size: %s', cls._current_readings_list_index, len(readings_list))
-
-        # When the current list is full, move on to the next list
-        if cls._max_concurrent_readings_inserts > 1 and (
-                    list_size >= cls._readings_insert_batch_size):
-            # Start at the beginning to reduce the number of connections
-            for list_index in range(cls._max_concurrent_readings_inserts):
-                if len(cls._readings_lists[list_index]) < cls._readings_insert_batch_size:
-                    cls._current_readings_list_index = list_index
-                    # _LOGGER.debug('Change Ingest Queue: from #%s (len %s) to #%s', cls._current_readings_list_index,
-                    #               len(cls._readings_lists[list_index]), list_index)
-                    break
+            # When the current list is full, move on to the next list
+            if cls._max_concurrent_readings_inserts > 1 and (
+                        list_size >= cls._readings_insert_batch_size):
+                # Start at the beginning to reduce the number of connections
+                for list_index in range(cls._max_concurrent_readings_inserts):
+                    if len(cls._readings_lists[list_index]) < cls._readings_insert_batch_size:
+                        cls._current_readings_list_index = list_index
+                        # _LOGGER.debug('Change Ingest Queue: from #%s (len %s) to #%s', cls._current_readings_list_index,
+                        #               len(cls._readings_lists[list_index]), list_index)
+                        break

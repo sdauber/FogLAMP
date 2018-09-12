@@ -180,6 +180,9 @@ class Server(FoglampMicroservice):
                 # pollInterval is expressed in milliseconds
                 sleep_seconds = int(self._plugin_handle['pollInterval']['value']) / 1000.0
                 await asyncio.sleep(sleep_seconds)
+            except RuntimeWarning as ex:
+                try_count = 2
+                _LOGGER.warning('Plugin {} : {}'.format(self._name, str(ex)))
             except KeyError as ex:
                 try_count = 2
                 _LOGGER.exception('Key error plugin {} : {}'.format(self._name, str(ex)))
