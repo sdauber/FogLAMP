@@ -1,52 +1,51 @@
 -- North_Readings_to_PI - OMF Translator for readings
 INSERT INTO foglamp.configuration ( key, description, value )
-     VALUES ( 'North_Readings_to_PI',
+     SELECT 'North_Readings_to_PI',
               'OMF North Plugin - C Code',
               ' { "plugin" : { "type" : "string", "value" : "omf", "default" : "omf", "description" : "Module that OMF North Plugin will load" } } '
-            );
+            WHERE NOT EXISTS (SELECT 1 FROM foglamp.configuration WHERE key = 'North_Readings_to_PI');
 
 -- North_Readings_to_HTTP - for readings
 INSERT INTO foglamp.configuration ( key, description, value )
-     VALUES ( 'North_Readings_to_HTTP',
+     SELECT 'North_Readings_to_HTTP',
               'HTTP North Plugin - C Code',
               ' { "plugin" : { "type" : "string", "value" : "http-north", "default" : "http-north", "description" : "Module that HTTP North Plugin will load" } } '
-            );
+            WHERE NOT EXISTS (SELECT 1 FROM foglamp.configuration WHERE key = 'North_Readings_to_HTTP');
 
 -- dht11 - South plugin for DHT11 - C
 INSERT INTO foglamp.configuration ( key, description, value )
-     VALUES ( 'dht11',
+     SELECT 'dht11',
               'DHT11 South C Plugin',
               ' { "plugin" : { "type" : "string", "value" : "dht11", "default" : "dht11", "description" : "Module that DHT11 South Plugin will load" } } '
-            );
+            WHERE NOT EXISTS (SELECT 1 FROM foglamp.configuration WHERE key = 'dht11');
 
 -- North_Statistics_to_PI - OMF Translator for statistics
 INSERT INTO foglamp.configuration ( key, description, value )
-     VALUES ( 'North_Statistics_to_PI',
+     SELECT 'North_Statistics_to_PI',
               'OMF North Plugin - C Code',
               ' { "plugin" : { "type" : "string", "value" : "omf", "default" : "omf", "description" : "Module that OMF North Plugin will load" } } '
-            );
+            WHERE NOT EXISTS (SELECT 1 FROM foglamp.configuration WHERE key = 'North_Statistics_to_PI');
 
 -- North Readings to PI - OMF Translator for readings
 INSERT INTO foglamp.configuration ( key, description, value )
-     VALUES ( 'North Readings to PI',
+     SELECT 'North Readings to PI',
               'OMF North Plugin',
               '{"plugin": {"description": "OMF North Plugin", "type": "string", "default": "omf", "value": "omf"}, "source": {"description": "Source of data to be sent on the stream. May be either readings, statistics or audit.", "type": "string", "default": "readings", "value": "readings"}}'
-            );
+            WHERE NOT EXISTS (SELECT 1 FROM foglamp.configuration WHERE key = 'North Readings to PI');
 
 -- North Statistics to PI - OMF Translator for statistics
 INSERT INTO foglamp.configuration ( key, description, value )
-     VALUES ( 'North Statistics to PI',
+     SELECT 'North Statistics to PI',
               'OMF North Statistics Plugin',
               '{"plugin": {"description": "OMF North Plugin", "type": "string", "default": "omf", "value": "omf"}, "source": {"description": "Source of data to be sent on the stream. May be either readings, statistics or audit.", "type": "string", "default": "statistics", "value": "statistics"}}'
-            );
+            WHERE NOT EXISTS (SELECT 1 FROM foglamp.configuration WHERE key = 'North Statistics to PI');
 
 -- North Readings to OCS - OSIsoft Cloud Services plugin for readings
 INSERT INTO foglamp.configuration ( key, description, value )
-     VALUES ( 'North Readings to OCS',
+     SELECT 'North Readings to OCS',
               'OCS North Plugin',
               '{"plugin": {"description": "OCS North Plugin", "type": "string", "default": "ocs", "value": "ocs"}, "source": {"description": "Source of data to be sent on the stream. May be either readings, statistics or audit.", "type": "string", "default": "readings", "value": "readings"}}'
-            );
-
+            WHERE NOT EXISTS (SELECT 1 FROM foglamp.configuration WHERE key = 'North Readings to OCS');
 
 -- Readings OMF to PI - C Code
 INSERT INTO foglamp.schedules ( id, schedule_name, process_name, schedule_type,
