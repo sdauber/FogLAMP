@@ -1,3 +1,6 @@
+
+-- North plugins
+
 -- North_Readings_to_PI - OMF Translator for readings
 INSERT INTO foglamp.configuration ( key, description, value )
      SELECT 'North_Readings_to_PI',
@@ -40,12 +43,33 @@ INSERT INTO foglamp.configuration ( key, description, value )
               '{"plugin": {"description": "OMF North Plugin", "type": "string", "default": "omf", "value": "omf"}, "source": {"description": "Source of data to be sent on the stream. May be either readings, statistics or audit.", "type": "string", "default": "statistics", "value": "statistics"}}'
             WHERE NOT EXISTS (SELECT 1 FROM foglamp.configuration WHERE key = 'North Statistics to PI');
 
+-- North Tasks
+--
+INSERT INTO foglamp.scheduled_processes ( name, script ) VALUES ( 'North Readings to PI',   '["tasks/north"]' );
+INSERT INTO foglamp.scheduled_processes ( name, script ) VALUES ( 'North Statistics to PI', '["tasks/north"]' );
+INSERT INTO foglamp.scheduled_processes ( name, script ) VALUES ( 'North Readings to OCS',  '["tasks/north"]' );
+ -- North Tasks - C code
+--
+INSERT INTO foglamp.scheduled_processes ( name, script ) VALUES ( 'North_Readings_to_PI',   '["tasks/north_c"]' );
+INSERT INTO foglamp.scheduled_processes ( name, script ) VALUES ( 'North_Statistics_to_PI', '["tasks/north_c"]' );
+ -- North Tasks - C code
+--
+INSERT INTO foglamp.scheduled_processes ( name, script ) VALUES ( 'North_Readings_to_HTTP',   '["tasks/north_c"]' );
+ -- South Tasks - C code
+--
+INSERT INTO foglamp.scheduled_processes ( name, script ) VALUES ( 'dht11',   '["services/south_c"]' );
+
+
 -- North Readings to OCS - OSIsoft Cloud Services plugin for readings
 INSERT INTO foglamp.configuration ( key, description, value )
      SELECT 'North Readings to OCS',
               'OCS North Plugin',
               '{"plugin": {"description": "OCS North Plugin", "type": "string", "default": "ocs", "value": "ocs"}, "source": {"description": "Source of data to be sent on the stream. May be either readings, statistics or audit.", "type": "string", "default": "readings", "value": "readings"}}'
             WHERE NOT EXISTS (SELECT 1 FROM foglamp.configuration WHERE key = 'North Readings to OCS');
+
+--
+-- North Tasks
+--
 
 -- Readings OMF to PI - C Code
 INSERT INTO foglamp.schedules ( id, schedule_name, process_name, schedule_type,
