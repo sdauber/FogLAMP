@@ -45,19 +45,35 @@ INSERT INTO foglamp.configuration ( key, description, value )
 
 -- North Tasks
 --
-INSERT INTO foglamp.scheduled_processes ( name, script ) VALUES ( 'North Readings to PI',   '["tasks/north"]' );
-INSERT INTO foglamp.scheduled_processes ( name, script ) VALUES ( 'North Statistics to PI', '["tasks/north"]' );
+INSERT INTO foglamp.scheduled_processes ( name, script )
+    SELECT 'North Readings to PI',   '["tasks/north"]'
+    WHERE NOT EXISTS (SELECT 1 FROM foglamp.scheduled_processes WHERE name = 'North Readings to PI');
+INSERT INTO foglamp.scheduled_processes ( name, script )
+    SELECT 'North Statistics to PI', '["tasks/north"]'
+    WHERE NOT EXISTS (SELECT 1 FROM foglamp.scheduled_processes WHERE name = 'North Statistics to PI');
 INSERT INTO foglamp.scheduled_processes ( name, script ) VALUES ( 'North Readings to OCS',  '["tasks/north"]' );
- -- North Tasks - C code
+    SELECT 'North Readings to OCS',  '["tasks/north"]'
+    WHERE  NOT EXISTS (SELECT 1 FROM foglamp.scheduled_processes WHERE name = 'North Readings to OCS');
+
+-- North Tasks - C code
 --
-INSERT INTO foglamp.scheduled_processes ( name, script ) VALUES ( 'North_Readings_to_PI',   '["tasks/north_c"]' );
-INSERT INTO foglamp.scheduled_processes ( name, script ) VALUES ( 'North_Statistics_to_PI', '["tasks/north_c"]' );
- -- North Tasks - C code
+INSERT INTO foglamp.scheduled_processes ( name, script )
+    SELECT 'North_Readings_to_PI',   '["tasks/north_c"]'
+    WHERE  NOT EXISTS (SELECT 1 FROM foglamp.scheduled_processes WHERE name = 'North_Readings_to_PI');
+INSERT INTO foglamp.scheduled_processes ( name, script )
+    SELECT 'North_Statistics_to_PI', '["tasks/north_c"]'
+    WHERE  NOT EXISTS (SELECT 1 FROM foglamp.scheduled_processes WHERE name = 'North_Statistics_to_PI');
+
+-- North Tasks - C code
 --
-INSERT INTO foglamp.scheduled_processes ( name, script ) VALUES ( 'North_Readings_to_HTTP',   '["tasks/north_c"]' );
- -- South Tasks - C code
+INSERT INTO foglamp.scheduled_processes ( name, script )
+    SELECT 'North_Readings_to_HTTP',   '["tasks/north_c"]'
+    WHERE  NOT EXISTS (SELECT 1 FROM foglamp.scheduled_processes WHERE name = 'North_Readings_to_HTTP');
+-- South Tasks - C code
 --
-INSERT INTO foglamp.scheduled_processes ( name, script ) VALUES ( 'dht11',   '["services/south_c"]' );
+INSERT INTO foglamp.scheduled_processes ( name, script )
+    SELECT 'dht11',   '["services/south_c"]'
+    WHERE NOT EXISTS (SELECT 1 FROM foglamp.scheduled_processes WHERE name = 'dht11');
 
 
 -- North Readings to OCS - OSIsoft Cloud Services plugin for readings
