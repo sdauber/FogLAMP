@@ -51,7 +51,7 @@ INSERT INTO foglamp.scheduled_processes ( name, script )
 INSERT INTO foglamp.scheduled_processes ( name, script )
     SELECT 'North Statistics to PI', '["tasks/north"]'
     WHERE NOT EXISTS (SELECT 1 FROM foglamp.scheduled_processes WHERE name = 'North Statistics to PI');
-INSERT INTO foglamp.scheduled_processes ( name, script ) VALUES ( 'North Readings to OCS',  '["tasks/north"]' );
+INSERT INTO foglamp.scheduled_processes ( name, script )
     SELECT 'North Readings to OCS',  '["tasks/north"]'
     WHERE  NOT EXISTS (SELECT 1 FROM foglamp.scheduled_processes WHERE name = 'North Readings to OCS');
 
