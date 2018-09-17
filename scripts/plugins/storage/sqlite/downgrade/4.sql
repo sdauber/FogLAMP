@@ -1,8 +1,16 @@
-UPDATE foglamp.configuration SET value = '{"plugin": {"description": "OMF North Plugin", "type": "string", "default": "omf", "value": "omf"}}'
-        WHERE key = 'North Readings to PI';
-UPDATE foglamp.configuration SET value = '{"plugin": {"description": "OMF North Plugin", "type": "string", "default": "omf", "value": "omf"}}'
-        WHERE key = 'North Statistics to PI';
-UPDATE foglamp.configuration SET value = '{"plugin": {"description": "OCS North Plugin", "type": "string", "default": "ocs", "value": "ocs"}}'
+UPDATE foglamp.configuration SET value = json_remove(value, '$.stream_id')
+	WHERE key = 'North Readings to PI';
+UPDATE foglamp.configuration SET value = json_remove(value, '$.source')
+	WHERE key = 'North Readings to PI';
+
+UPDATE foglamp.configuration SET value = json_remove(value, '$.stream_id')
+	WHERE key = 'North Statistics to PI';
+UPDATE foglamp.configuration SET value = json_remove(value, '$.source')
+	WHERE key = 'North Statistics to PI';
+
+UPDATE foglamp.configuration SET value = json_remove(value, '$.stream_id')
+        WHERE key = 'North Readings to OCS';
+UPDATE foglamp.configuration SET value = json_remove(value, '$.source')
         WHERE key = 'North Readings to OCS';
 
 UPDATE statistics SET key = 'SENT_1' WHERE key = 'North Readings to PI';

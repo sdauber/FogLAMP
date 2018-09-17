@@ -1,9 +1,11 @@
-UPDATE foglamp.configuration SET value = '{"plugin": {"description": "OMF North Plugin", "type": "string", "default": "omf", "value": "omf"}}'
-        WHERE key = 'North Readings to PI';
-UPDATE foglamp.configuration SET value = '{"plugin": {"description": "OMF North Plugin", "type": "string", "default": "omf", "value": "omf"}}'
-        WHERE key = 'North Statistics to PI';
-UPDATE foglamp.configuration SET value = '{"plugin": {"description": "OCS North Plugin", "type": "string", "default": "ocs", "value": "ocs"}}'
-        WHERE key = 'North Readings to OCS';
+UPDATE foglamp.configuration SET value = value #- '{stream_id}' WHERE key = 'North Readings to PI';
+UPDATE foglamp.configuration SET value = value #- '{source}' WHERE key = 'North Readings to PI';
+
+UPDATE foglamp.configuration SET value = value #- '{stream_id}' WHERE key = 'North Statistics to PI';
+UPDATE foglamp.configuration SET value = value #- '{source}' WHERE key = 'North Statistics to PI';
+
+UPDATE foglamp.configuration SET value = value #- '{stream_id}' WHERE key = 'North Readings to OCS';
+UPDATE foglamp.configuration SET value = value #- '{source}' WHERE key = 'North Readings to OCS';
 
 UPDATE statistics SET key = 'SENT_1' WHERE key = 'North Readings to PI';
 UPDATE statistics SET key = 'SENT_2' WHERE key = 'North Statistics to PI';
