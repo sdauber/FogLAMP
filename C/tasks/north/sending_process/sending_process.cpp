@@ -196,7 +196,8 @@ static void loadDataThread(SendingProcess *loadData)
 												      qStatistics);
 				}
 				//high_resolution_clock::time_point t2 = high_resolution_clock::now();
-				//auto duration = duration_cast<microseconds>( t2 - t1 ).count();
+				//auto usecs = duration_cast<microseconds>( t2 - t1 ).count();
+				//Logger::getLogger()->info("loadDataThread(): isReading=%s, time taken=%lld usecs", isReading?"true":"false", usecs);
 			}
 			catch (ReadingSetException* e)
 			{
@@ -356,11 +357,16 @@ static void sendDataThread(SendingProcess *sendData)
 			 */
 
 			const vector<Reading *> &readingData = sendData->m_buffer.at(sendIdx)->getAllReadings();
+			high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
 			uint32_t sentReadings = sendData->m_plugin->send(readingData);
 
 			if (sentReadings)
 			{
+				high_resolution_clock::time_point t2 = high_resolution_clock::now();
+				auto usecs = duration_cast<microseconds>( t2 - t1 ).count();
+				//Logger::getLogger()->info("sendDataThread(): time taken=%lld usecs", usecs);
+				
 				/** Sending done */
 				sendData->setUpdateDb(true);
 

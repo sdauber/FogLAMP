@@ -495,7 +495,7 @@ bool ManagementClient::addAssetTrackingTuple(const std::string& service,
 		auto res = m_client->request("POST", "/foglamp/track", convert.str());
 		Document doc;
 		string content = res->content.string();
-		m_logger->info("POST /foglamp/track: response='%s' ", content.c_str());
+		//m_logger->info("POST /foglamp/track: response='%s' ", content.c_str());
 		doc.Parse(content.c_str());
 		if (doc.HasParseError())
 		{
@@ -506,7 +506,7 @@ bool ManagementClient::addAssetTrackingTuple(const std::string& service,
 		if (doc.HasMember("foglamp"))
 		{
 			const char *reg_id = doc["foglamp"].GetString();
-			m_logger->info("Added asset tracking tuple successfully");
+			//m_logger->info("Added asset tracking tuple successfully");
 			return true;
 		}
 		else if (doc.HasMember("message"))

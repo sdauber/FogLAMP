@@ -388,6 +388,8 @@ Connection::Connection()
 		{
 			Logger::getLogger()->info("Connected to SQLite3 database: %s",
 						  dbPath.c_str());
+			sqlite3_exec(dbHandle, "PRAGMA cache_size=16000", NULL, NULL, &zErrMsg);
+			sqlite3_exec(dbHandle, "PRAGMA temp_store=MEMORY", NULL, NULL, &zErrMsg);
 		}
 		//Release sqlStmt buffer
 		delete[] sqlStmt;
@@ -1321,29 +1323,40 @@ SQLBuffer	sql;
 	}
 }
 
+#define MARK_TIME_START   start = std::chrono::high_resolution_clock::now()
+#define MARK_TIME_END   elapsed = std::chrono::high_resolution_clock::now() - start;
+
+
 /**
  * Append a set of readings to the readings table
  */
 int Connection::appendReadings(const char *readings)
 {
 // Default template parameter uses UTF8 and MemoryPoolAllocator.
-Document 	doc;
+Document	doc;
 SQLBuffer	sql;
-int		row = 0;
+int 	row = 0;
 
+	auto start = std::chrono::high_resolution_clock::now();
+	auto start1 = std::chrono::high_resolution_clock::now();
+	auto elapsed = std::chrono::high_resolution_clock::now() - start;
+	long long microseconds; // = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+	//Logger::getLogger()->info("%s took %lld usecs", "startup", microseconds);
+	
+	char *zErrMsg = NULL;
+	int rc;
+	
 	ParseResult ok = doc.Parse(readings);
 	if (!ok)
 	{
- 		raiseError("appendReadings", GetParseError_En(doc.GetParseError()));
+		raiseError("appendReadings", GetParseError_En(doc.GetParseError()));
 		return -1;
 	}
 
-	sql.append("INSERT INTO foglamp.readings ( asset_code, read_key, reading, user_ts ) VALUES ");
-
 	if (!doc.HasMember("readings"))
 	{
- 		raiseError("appendReadings", "Payload is missing a readings array");
-	        return -1;
+		raiseError("appendReadings", "Payload is missing a readings array");
+			return -1;
 	}
 	Value &rdings = doc["readings"];
 	if (!rdings.IsArray())
@@ -1351,6 +1364,23 @@ int		row = 0;
 		raiseError("appendReadings", "Payload is missing the readings array");
 		return -1;
 	}
+
+	sqlite3_exec(dbHandle, "BEGIN TRANSACTION", NULL, NULL, &zErrMsg);
+	char buffer[] = "INSERT INTO foglamp.readings (asset_code, read_key, reading, user_ts) VALUES (?1, ?2, ?3, ?4)";
+	sqlite3_stmt* stmt;
+	start = std::chrono::high_resolution_clock::now();
+	sqlite3_prepare_v2(dbHandle, buffer, strlen(buffer), &stmt, NULL);
+	elapsed = std::chrono::high_resolution_clock::now() - start;
+	long long tPrepare = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+	//Logger::getLogger()->info("%s took %lld usecs", "sqlite3_prepare_v2", microseconds);
+	
+	//Logger::getLogger()->info("sqlite3_prepare_v2 done");
+	
+	//sql.append("INSERT INTO foglamp.readings ( asset_code, read_key, reading, user_ts ) VALUES ");
+	//Logger::getLogger()->info("sqlite3_prepare_v2 done");
+
+	start = std::chrono::high_resolution_clock::now();
+	int rows=0;
 	for (Value::ConstValueIterator itr = rdings.Begin(); itr != rdings.End(); ++itr)
 	{
 		if (!itr->IsObject())
@@ -1359,65 +1389,79 @@ int		row = 0;
 				   "Each reading in the readings array must be an object");
 			return -1;
 		}
-		if (row)
-		{
-			sql.append(", (");
-		}
-		else
-		{
-			sql.append('(');
-		}
-		row++;
-		sql.append('\'');
-		sql.append((*itr)["asset_code"].GetString());
+		sqlite3_bind_text(stmt, 1, (*itr)["asset_code"].GetString(), -1, SQLITE_TRANSIENT);
+	
 		// Python code is passing the string None when here is no read_key in the payload
 		if (itr->HasMember("read_key") && strcmp((*itr)["read_key"].GetString(), "None") != 0)
 		{
-			sql.append("', \'");
-			sql.append((*itr)["read_key"].GetString());
-			sql.append("', \'");
+			sqlite3_bind_text(stmt, 2, (*itr)["read_key"].GetString(), -1, SQLITE_TRANSIENT);
 		}
 		else
 		{
 			// No "read_key" in this reading, insert NULL
-			sql.append("', NULL, '");
+			sqlite3_bind_text(stmt, 2, "NULL", sizeof("NULL"), SQLITE_STATIC);
 		}
 
 		StringBuffer buffer;
 		Writer<StringBuffer> writer(buffer);
 		(*itr)["reading"].Accept(writer);
-		sql.append(buffer.GetString());
-		sql.append("\', ");
+		sqlite3_bind_text(stmt, 3, buffer.GetString(), -1, SQLITE_TRANSIENT);
+
 		const char *str = (*itr)["user_ts"].GetString();
 		if (strcmp(str, "now()") == 0)
 		{
-			sql.append(SQLITE3_NOW);
+			sqlite3_bind_text(stmt, 4, SQLITE3_NOW, -1, SQLITE_STATIC);
 		}
 		else
 		{
-			sql.append('\'');
-			sql.append(escape(str));
-			sql.append('\'');
+			const char *escStr=escape(str);
+			sqlite3_bind_text(stmt, 4, escStr, -1, SQLITE_TRANSIENT);
 		}
 
-		sql.append(')');
+		//Logger::getLogger()->info("Bind for all 4 params done");
+
+		if (sqlite3_step(stmt) != SQLITE_DONE)
+		{
+			raiseError("appendReadings", "Reading commit failed: %s", sqlite3_errmsg(dbHandle));
+		}
+
+		//Logger::getLogger()->info("sqlite3_step done");
+	 
+		sqlite3_reset(stmt);
+		rows++;
 	}
-	sql.append(';');
 
-	const char *query = sql.coalesce();
-	logSQL("ReadingsAppend", query);
-	char *zErrMsg = NULL;
-	int rc;
-
+	elapsed = std::chrono::high_resolution_clock::now() - start;
+	long long tForLoop = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+	//Logger::getLogger()->info("%s (%d readings) took %lld usecs", "Readings for loop", rows, microseconds);
+	//sqlite3_exec(dbHandle, "COMMIT TRANSACTION", NULL, NULL, &errorMessage);
+	//sqlite3_finalize(stmt);
+	
+	//const char *query = sql.coalesce();
+	//logSQL("ReadingsAppend", query);
+	
 	// Exec the INSERT statement: no callback, no result set
+	start = std::chrono::high_resolution_clock::now();
 	rc = SQLexec(dbHandle,
-		     query,
-		     NULL,
-		     NULL,
-		     &zErrMsg);
+			 "COMMIT TRANSACTION",
+			 NULL,
+			 NULL,
+			 &zErrMsg);
+
+	elapsed = std::chrono::high_resolution_clock::now() - start;
+	long long tCommitTxn = std::chrono::duration_cast<std::chrono::microseconds>(elapsed).count();
+	//Logger::getLogger()->info("%s took %lld usecs", "COMMIT TRANSACTION", microseconds);
 
 	// Release memory for 'query' var
-	delete[] query;
+	//delete[] query;
+
+	//Logger::getLogger()->info("COMMIT TRANSACTION done: rc=%d", rc);
+	sqlite3_finalize(stmt);
+
+	auto elapsed1 = std::chrono::high_resolution_clock::now() - start1;
+	microseconds = std::chrono::duration_cast<std::chrono::microseconds>(elapsed1).count();
+	Logger::getLogger()->info("%s (%d readings) took %lld usecs: prepare=%lld usecs, readingsLoop=%lld usecs, commitTxn=%lld usecs", 
+								"appendReadings()", rows, microseconds, tPrepare, tForLoop, tCommitTxn);
 
 	// Check result code
 	if (rc == SQLITE_OK)
@@ -1427,13 +1471,14 @@ int		row = 0;
 	}
 	else
 	{
-	 	raiseError("appendReadings", zErrMsg);
+		raiseError("appendReadings", zErrMsg);
 		sqlite3_free(zErrMsg);
 
 		// Failure
 		return -1;
 	}
 }
+
 
 /**
  * Fetch a block of readings from the reading table
