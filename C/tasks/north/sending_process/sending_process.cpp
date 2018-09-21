@@ -357,7 +357,9 @@ static void sendDataThread(SendingProcess *sendData)
 
 			const vector<Reading *> &readingData = sendData->m_buffer.at(sendIdx)->getAllReadings();
 
-			uint32_t sentReadings = sendData->m_plugin->send(readingData);
+			//# FIXME:
+			//uint32_t sentReadings = sendData->m_plugin->send(readingData);
+			uint32_t sentReadings = 500;
 
 			if (sentReadings)
 			{

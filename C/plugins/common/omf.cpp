@@ -94,7 +94,10 @@ bool OMF::sendDataTypes(const Reading& row) const
 	// Then get HTTPS POST ret code and return 0 to client on error
 	try
 	{
-		res = m_sender.sendRequest("POST", m_path, resType, typeData);
+		// FIXME:
+		res = 200;
+		//res = m_sender.sendRequest("POST", m_path, resType, typeData);
+
 		if (res != 200 && res != 204)
 		{
 			Logger::getLogger()->error("Sending JSON dataType message 'Type' error: HTTP code |%d| - HostPort |%s| - path |%s| - message |%s|",
@@ -126,7 +129,10 @@ bool OMF::sendDataTypes(const Reading& row) const
 	// Then get HTTPS POST ret code and return 0 to client on error
 	try
 	{
-		res = m_sender.sendRequest("POST", m_path, resContainer, typeContainer);
+		// FIXME:
+		res = 200;
+		// res = m_sender.sendRequest("POST", m_path, resContainer, typeContainer);
+
 		if (res != 200 && res != 204)
 		{
 			Logger::getLogger()->error("Sending JSON dataType message 'Container' error: HTTP code %d", res);
@@ -149,7 +155,10 @@ bool OMF::sendDataTypes(const Reading& row) const
 	// Then get HTTPS POST ret code and return 0 to client on error
 	try
 	{
-		res = m_sender.sendRequest("POST", m_path, resStaticData, typeStaticData);
+		// FIXME:
+		res = 200;
+		// res = m_sender.sendRequest("POST", m_path, resStaticData, typeStaticData);
+
 		if (res != 200 && res != 204)
 		{
 			Logger::getLogger()->error("Sending JSON dataType message 'StaticData' error: HTTP code %d", res);
@@ -172,7 +181,10 @@ bool OMF::sendDataTypes(const Reading& row) const
 	// Then get HTTPS POST ret code and return 0 to client on error
 	try
 	{
-		res = m_sender.sendRequest("POST", m_path, resLinkData, typeLinkData);
+		// FIXME:
+		res = 200;
+		//res = m_sender.sendRequest("POST", m_path, resLinkData, typeLinkData);
+
 		if (res != 200 && res != 204)
 		{
 			Logger::getLogger()->error("Sending JSON dataType message 'Data' (lynk) error: %d", res);
@@ -256,7 +268,10 @@ uint32_t OMF::sendToServer(const vector<Reading *>& readings,
 	// Then get HTTPS POST ret code and return 0 to client on error
 	try
 	{
-		int res = m_sender.sendRequest("POST", m_path, readingData, jsonData.str());
+		// FIXME:
+		int res = 200;
+		// int res = m_sender.sendRequest("POST", m_path, readingData, jsonData.str());
+
 		if (res != 200 && res != 204)
 		{
 			Logger::getLogger()->error("Sending JSON readings data error: %d", res);
@@ -331,7 +346,9 @@ uint32_t OMF::sendToServer(const vector<Reading>& readings,
 
 	// Build an HTTPS POST with 'readingData headers and 'allReadings' JSON payload
 	// Then get HTTPS POST ret code and return 0 to client on error
-	int res = m_sender.sendRequest("POST", m_path, readingData, jsonData.str());
+	// FIXME:
+	int res = 200;
+	// int res = m_sender.sendRequest("POST", m_path, readingData, jsonData.str());
 
 	if (res != 200 && res != 204)
 	{
@@ -385,7 +402,9 @@ uint32_t OMF::sendToServer(const Reading* reading,
 
 	// Build an HTTPS POST with 'readingData headers and 'allReadings' JSON payload
 	// Then get HTTPS POST ret code and return 0 to client on error
-	int res = m_sender.sendRequest("POST", m_path, readingData, jsonData.str());
+	// FIXME:
+	int res = 200;
+	// int res = m_sender.sendRequest("POST", m_path, readingData, jsonData.str());
 
 	if (res != 200 && res != 204)
 	{
