@@ -237,6 +237,7 @@ class Ingest(object):
             cls._readings_list_not_empty.append(asyncio.Event())
 
         cls._insert_readings_task = asyncio.ensure_future(cls._insert_readings())
+        cls._write_statistics_task = asyncio.ensure_future(cls._write_statistics())
         cls._readings_lists_not_full = asyncio.Event()
 
         cls._stop = False
@@ -261,6 +262,12 @@ class Ingest(object):
             cls._insert_readings_task = None
         except Exception:
             _LOGGER.exception('An exception was raised by Ingest._insert_readings')
+
+        try:
+            await cls._write_statistics_task
+            cls._write_statistics_task = None
+        except Exception:
+            _LOGGER.exception('An exception was raised by Ingest._write_statistics')
 
         cls._insert_readings_wait_tasks = None
         cls._insert_readings_tasks = None
@@ -299,7 +306,6 @@ class Ingest(object):
             readings_list = cls._readings_lists[list_index]
             min_readings_reached = cls._readings_list_batch_size_reached[list_index]
             list_not_empty = cls._readings_list_not_empty[list_index]
-            lists_not_full = cls._readings_lists_not_full
 
             # Wait for enough items in the list to fill a batch
             # for some minimum amount of time
@@ -388,8 +394,8 @@ class Ingest(object):
 
             del readings_list[:batch_size]
 
-            if not lists_not_full.is_set():
-                lists_not_full.set()
+            if not cls._readings_lists_not_full.is_set():
+                cls._readings_lists_not_full.set()
 
             # insert_end_time = time.time()
             # _LOGGER.debug('Inserted %s records + stat in time %s', batch_size, insert_end_time - insert_start_time)
@@ -461,7 +467,7 @@ class Ingest(object):
         return False
 
     @classmethod
-    async def add_readings(cls, asset: str, timestamp: Union[str, datetime.datetime],
+    def add_readings(cls, asset: str, timestamp: Union[str, datetime.datetime],
                            key: Union[str, uuid.UUID] = None, readings: dict = None) -> None:
         """Adds an asset readings record to FogLAMP
 
@@ -484,8 +490,7 @@ class Ingest(object):
                 An invalid value was provided
         """
         if cls._stop:
-            _LOGGER.warning('The South Service is stopping')
-            return
+            raise RuntimeError('The South Service is stopping')
 
         if not cls._started:
             raise RuntimeError('The South Service was not started')
@@ -519,56 +524,66 @@ class Ingest(object):
                 # Postgres allows values like 5 be converted to JSON
                 # Downstream processors can not handle this
                 raise TypeError('readings must be a dictionary')
-        except Exception:
+        except Exception as ex:
             cls.increment_discarded_readings()
-            raise
+            raise RuntimeWarning(str(ex))
 
         # Comment out to test IntegrityError
         # key = '123e4567-e89b-12d3-a456-426655440000'
 
-        # Wait for an empty slot in the list
-        while not cls.is_available():
-            cls._readings_lists_not_full.clear()
-            await cls._readings_lists_not_full.wait()
-            if cls._stop:
-                raise RuntimeError('The South Service is stopping')
+        try:
+            # # Check for an empty slot in the list
+            # if not cls.is_available():
+            #     raise RuntimeWarning
+            #
+            # if cls._stop:
+            #     raise RuntimeError('The South Service is stopping')
 
-        list_index = cls._current_readings_list_index
-        readings_list = cls._readings_lists[list_index]
+            # Wait for an empty slot in the list
+            while not cls.is_available():
+                # cls._readings_lists_not_full.clear()
+                # await cls._readings_lists_not_full.wait()
+                if cls._stop:
+                    raise RuntimeError('The South Service is stopping')
 
-        read = dict()
-        read['asset_code'] = asset
-        read['read_key'] = str(key)
-        read['reading'] = readings
-        read['user_ts'] = timestamp
+            list_index = cls._current_readings_list_index
+            readings_list = cls._readings_lists[list_index]
 
-        readings_list.append(read)
+            read = dict()
+            read['asset_code'] = asset
+            read['read_key'] = str(key)
+            read['reading'] = readings
+            read['user_ts'] = timestamp
 
-        list_size = len(readings_list)
+            readings_list.append(read)
+        except RuntimeWarning:
+            cls.increment_discarded_readings()
+        else:
+            list_size = len(readings_list)
 
-        # asset tracker checking
-        payload = {"asset": asset, "event": "Ingest", "service": cls._parent_service._name,
-                   "plugin": cls._parent_service._plugin_handle['plugin']['value']}
-        if payload not in cls._payload_events:
-            cls._parent_service._core_microservice_management_client.create_asset_tracker_event(payload)
-            cls._payload_events.append(payload)
+            # asset tracker checking
+            payload = {"asset": asset, "event": "Ingest", "service": cls._parent_service._name,
+                       "plugin": cls._parent_service._plugin_handle['plugin']['value']}
+            if payload not in cls._payload_events:
+                cls._parent_service._core_microservice_management_client.create_asset_tracker_event(payload)
+                cls._payload_events.append(payload)
 
-        # _LOGGER.debug('Add readings list index: %s size: %s', cls._current_readings_list_index, list_size)
+            # _LOGGER.debug('Add readings list index: %s size: %s', cls._current_readings_list_index, list_size)
 
-        if list_size == 1:
-            cls._readings_list_not_empty[list_index].set()
+            if list_size == 1:
+                cls._readings_list_not_empty[list_index].set()
 
-        if list_size == cls._readings_insert_batch_size:
-            cls._readings_list_batch_size_reached[list_index].set()
-            # _LOGGER.debug('Set event list index: %s size: %s', cls._current_readings_list_index, len(readings_list))
+            if list_size == cls._readings_insert_batch_size:
+                cls._readings_list_batch_size_reached[list_index].set()
+                # _LOGGER.debug('Set event list index: %s size: %s', cls._current_readings_list_index, len(readings_list))
 
-        # When the current list is full, move on to the next list
-        if cls._max_concurrent_readings_inserts > 1 and (
-                    list_size >= cls._readings_insert_batch_size):
-            # Start at the beginning to reduce the number of connections
-            for list_index in range(cls._max_concurrent_readings_inserts):
-                if len(cls._readings_lists[list_index]) < cls._readings_insert_batch_size:
-                    cls._current_readings_list_index = list_index
-                    # _LOGGER.debug('Change Ingest Queue: from #%s (len %s) to #%s', cls._current_readings_list_index,
-                    #               len(cls._readings_lists[list_index]), list_index)
-                    break
+            # When the current list is full, move on to the next list
+            if cls._max_concurrent_readings_inserts > 1 and (
+                        list_size >= cls._readings_insert_batch_size):
+                # Start at the beginning to reduce the number of connections
+                for list_index in range(cls._max_concurrent_readings_inserts):
+                    if len(cls._readings_lists[list_index]) < cls._readings_insert_batch_size:
+                        cls._current_readings_list_index = list_index
+                        # _LOGGER.debug('Change Ingest Queue: from #%s (len %s) to #%s', cls._current_readings_list_index,
+                        #               len(cls._readings_lists[list_index]), list_index)
+                        break

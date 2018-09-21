@@ -186,6 +186,9 @@ class Server(FoglampMicroservice):
                                                                   key=data['key'],
                                                                   readings=data['readings']))
                 await asyncio.sleep(sleep_seconds)
+            except RuntimeWarning as ex:
+                try_count = 2
+                _LOGGER.warning('Plugin {} : {}'.format(self._name, str(ex)))
             except asyncio.CancelledError:
                 pass
             except KeyError as ex:
